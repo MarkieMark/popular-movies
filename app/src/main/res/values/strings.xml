@@ -1,9 +1,21 @@
 <resources>
     <string name="app_name">Popular Movies</string>
+    <string name="detail_name">Movie Detail</string>
     <string name="sort_by">Sort By</string>
     <string name="poster_image_alt">Movie Poster Image</string>
     <string name="no_network">No network found</string>
     <string name="no_connection">No internet connection</string>
+    <string name="favorite">Favorite</string>
+    <string name="html_prefix">
+<![CDATA[
+<body style="text-align:justify">
+]]>
+    </string>
+    <string name="html_suffix">
+<![CDATA[
+</body>
+]]>
+    </string>
     <string-array name="sort_strings">
         <item>Popular</item>
         <item>Top Rated</item>
