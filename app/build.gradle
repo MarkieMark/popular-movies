@@ -20,9 +20,9 @@ android {
     buildTypes.each {
         it.buildConfigField 'String', 'THE_MOVIE_DB_API_KEY_V4', MyTheMovieDBApiKeyV4
         it.buildConfigField 'String', 'THE_MOVIE_DB_API_KEY_V3', MyTheMovieDBApiKeyV3
-        it.buildConfigField 'String', 'POPULAR_BASE_URL', 'http://api.themoviedb.org/3/movie/popular?api_key='
-        it.buildConfigField 'String', 'TOPRATED_BASE_URL', 'http://api.themoviedb.org/3/movie/top_rated?api_key='
-        it.buildConfigField 'String', 'IMAGE_BASE_URL', 'http://image.tmdb.org/t/p/'
+        it.buildConfigField 'String', 'POPULAR_BASE_URL', PopularBaseURL
+        it.buildConfigField 'String', 'TOPRATED_BASE_URL', TopRatedBaseURL
+        it.buildConfigField 'String', 'IMAGE_BASE_URL', ImageBaseURL
     }
 }
 
