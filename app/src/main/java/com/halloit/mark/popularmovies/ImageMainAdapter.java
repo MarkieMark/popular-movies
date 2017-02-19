@@ -16,16 +16,14 @@ import com.squareup.picasso.Picasso;
 class ImageMainAdapter extends BaseAdapter {
     private static final String TAG = "ImageMainAdapter.java";
     private final Context context;
-    private String[] mPosterUrls;
 
-    ImageMainAdapter(Context c, String[] imagePaths) {
+    ImageMainAdapter(Context c) {
         context = c;
-        mPosterUrls = imagePaths;
     }
 
     @Override
     public int getCount() {
-        return mPosterUrls.length;
+        return Movie.getMovieList().length;
     }
 
     @Override
@@ -51,14 +49,10 @@ class ImageMainAdapter extends BaseAdapter {
         } else {
             imageView = (ImageView) convertView;
         }
-        imageView.setTag(mPosterUrls[position]);
+        imageView.setTag(String.valueOf(position));
 
-        Log.i(TAG, "picasso loading URL: " + mPosterUrls[position]);
-        Picasso.with(context).load(mPosterUrls[position]).into(imageView);
+        Log.i(TAG, "picasso loading URL: " + Movie.getMovieList()[position].getImageFullPath());
+        Picasso.with(context).load(Movie.getMovieList()[position].getImageFullPath()).into(imageView);
         return imageView;
-    }
-
-    public void setMPosterUrls(String[] mPosterUrls) {
-        this.mPosterUrls = mPosterUrls;
     }
 }

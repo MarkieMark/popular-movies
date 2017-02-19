@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PopularMovies</string>
+    <string name="app_name">Popular Movies</string>
     <string name="sort_by">Sort By</string>
     <string name="poster_image_alt">Movie Poster Image</string>
     <string name="no_network">No network found</string>

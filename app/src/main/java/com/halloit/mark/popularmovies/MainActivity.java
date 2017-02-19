@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private GridView mGridView;
     private ProgressBar mProgressBar;
     private TextView mErrorView;
+    private Movie[] mMovies;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -159,17 +160,27 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
             Log.i(TAG, moviesData);
             try {
-                JSONObject movies = new JSONObject(moviesData);
-                JSONArray results = movies.getJSONArray("results");
+                JSONObject moviesJ = new JSONObject(moviesData);
+                JSONArray results = moviesJ.getJSONArray("results");
                 int len = results.length();
-                String[] imagePaths = new String[len];
+                mMovies = new Movie[len];
                 for (int i = 0; i < len; i++) {
-                    JSONObject movie = results.getJSONObject(i);
-                    String posterPath = movie.getString("poster_path");
+                    JSONObject movieJ = results.getJSONObject(i);
+                    String posterPath = movieJ.getString("poster_path");
                     Log.i(TAG, "image path: " + posterPath);
-                    imagePaths[i] = BuildConfig.IMAGE_BASE_URL + "w185" + posterPath;
+                    mMovies[i] = new Movie();
+                    mMovies[i].setImageFullPath(BuildConfig.IMAGE_BASE_URL + "w185" + posterPath);
+                    mMovies[i].setPosterPath(posterPath);
+                    mMovies[i].setBackdropPath(movieJ.getString("backdrop_path"));
+                    mMovies[i].setTitle(movieJ.getString("title"));
+                    mMovies[i].setOriginalLanguage(movieJ.getString("original_language"));
+                    mMovies[i].setOriginalTitle(movieJ.getString("original_title"));
+                    mMovies[i].setOverview(movieJ.getString("overview"));
+                    mMovies[i].setReleaseDate(movieJ.getString("release_date"));
+                    mMovies[i].setVoteAverage(movieJ.getDouble("vote_average"));
                 }
-                mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, imagePaths));
+                Movie.setMovieList(mMovies);
+                mGridView.setAdapter(new ImageMainAdapter(MainActivity.this));
                 mProgressBar.setVisibility(View.INVISIBLE);
                 mGridView.setVisibility(View.VISIBLE);
             } catch (JSONException e) {

@@ -36,9 +36,11 @@ public class DetailActivity extends AppCompatActivity {
             }
             // TODO check for actual connection
             String content = intent.getStringExtra(Intent.EXTRA_TEXT);
+            Movie movie = Movie.getMovieList()[Integer.valueOf(content)];
             Log.i(TAG, "intent content: " + content);
+            Log.i(TAG, "movie details: " + movie);
             mImageView.setMinimumHeight(750);
-            Picasso.with(this).load(content).into(mImageView);
+            Picasso.with(this).load(movie.getImageFullPath()).into(mImageView);
         }
     }
     // TODO add more detail
