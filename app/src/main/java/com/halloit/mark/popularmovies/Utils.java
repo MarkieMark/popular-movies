@@ -12,13 +12,13 @@ import java.net.URL;
 import java.util.Scanner;
 
 /**
- * Created by mark on 2/19/17.
+ * Author Mark
  */
 
-public class Utils {
+class Utils {
     private static final String TAG = "Utils.java";
 
-    public static String getResponseFromHttpUrl(URL url) throws IOException {
+    static String getResponseFromHttpUrl(URL url) throws IOException {
         Log.i(TAG, "getResponseFromHttpUrl(): " + url.toString());
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         Log.i(TAG, "HttpURLConnection: " + urlConnection.toString());
@@ -44,17 +44,17 @@ public class Utils {
         }
     }
 
-    public static boolean isNetworkConnected(Context c) {
+    static boolean isNetworkConnected(Context c) {
         Log.i(TAG, "isNetworkConnected");
         ConnectivityManager m = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
         return m.getActiveNetworkInfo() != null;
     }
 
-    public static boolean isInternetAvailable() {
+    static boolean isInternetAvailable() {
         Log.i(TAG, "isInternetAvailable");
         try {
             InetAddress ipAddr = InetAddress.getByName("themoviedb.com");
-            return !ipAddr.equals("");
+            return !ipAddr.toString().equals("");
         } catch (Exception e) {
             Log.i(TAG, e.toString());
             return false;

@@ -21,11 +21,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Scanner;
 
 // TODO optimize for reuse;
 // cache API json results;
@@ -100,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private void loadMoviesData() {
         if (! Utils.isNetworkConnected(this)) {
-            mErrorView.setText("No network found");
+            mErrorView.setText(R.string.no_network);
             mErrorView.setVisibility(View.VISIBLE);
             mGridView.setVisibility(View.INVISIBLE);
             mProgressBar.setVisibility(View.INVISIBLE);
@@ -154,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         @Override
         protected void onPostExecute(String moviesData) {
             if (moviesData == null) {
-                mErrorView.setText("No internet connection");
+                mErrorView.setText(R.string.no_connection);
                 mErrorView.setVisibility(View.VISIBLE);
                 mGridView.setVisibility(View.INVISIBLE);
                 mProgressBar.setVisibility(View.INVISIBLE);

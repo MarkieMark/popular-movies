@@ -28,7 +28,7 @@ public class DetailActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent.hasExtra(Intent.EXTRA_TEXT)) {
             if (! Utils.isNetworkConnected(this)) {
-                mErrorView.setText("No network found");
+                mErrorView.setText(R.string.no_network);
                 mErrorView.setVisibility(View.VISIBLE);
                 mImageView.setVisibility(View.INVISIBLE);
                 mProgressBar.setVisibility(View.INVISIBLE);
@@ -37,9 +37,8 @@ public class DetailActivity extends AppCompatActivity {
             // TODO check for actual connection
             String content = intent.getStringExtra(Intent.EXTRA_TEXT);
             Log.i(TAG, "intent content: " + content);
-            ImageView imageView = (ImageView) findViewById(R.id.dv_image);
-            imageView.setMinimumHeight(750);
-            Picasso.with(this).load(content).into(imageView);
+            mImageView.setMinimumHeight(750);
+            Picasso.with(this).load(content).into(mImageView);
         }
     }
     // TODO add more detail
