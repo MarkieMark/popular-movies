@@ -58,13 +58,13 @@
                         android:layout_gravity="center_horizontal"
                         android:textSize="18sp"
                         android:paddingTop="10dp"/>
-                    <Button
+                    <!--<Button
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:id="@+id/button_favorite"
                         android:text="@string/favorite"
                         android:layout_gravity="center_horizontal|bottom"
-                        android:layout_marginTop="20dp"/>
+                        android:layout_marginTop="20dp"/>-->
                 </LinearLayout>
             </LinearLayout>
             <WebView
