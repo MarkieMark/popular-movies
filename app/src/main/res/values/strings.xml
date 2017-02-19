@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">PopularMovies</string>
     <string name="sort_by">Sort By</string>
+    <string name="poster_image_alt">Movie Poster Image</string>
     <string-array name="sort_strings">
         <item>Popular</item>
         <item>Top Rated</item>

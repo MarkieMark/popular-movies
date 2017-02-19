@@ -1,31 +1,31 @@
 package com.halloit.mark.popularmovies;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
+
+import com.squareup.picasso.Picasso;
 
 /**
  * Author Mark
  */
 
 class ImageMainAdapter extends BaseAdapter {
+    private static final String TAG = "ImageMainAdapter.java";
     private final Context context;
-    private final int[] mThumbIds = {
-            R.drawable.sample_0, R.drawable.sample_1,
-            R.drawable.sample_2, R.drawable.sample_3,
-            R.drawable.sample_4, R.drawable.sample_5,
-            R.drawable.sample_6, R.drawable.sample_7
-    };
+    private String[] mPosterUrls;
 
-    ImageMainAdapter(Context c) {
+    ImageMainAdapter(Context c, String[] imagePaths) {
         context = c;
+        mPosterUrls = imagePaths;
     }
 
     @Override
     public int getCount() {
-        return mThumbIds.length;
+        return mPosterUrls.length;
     }
 
     @Override
@@ -42,16 +42,23 @@ class ImageMainAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         ImageView imageView;
         if (convertView == null) {
-            // if it's not recycled, initialize some attributes
+            // not recycled, init some attributes
             imageView = new ImageView(context);
+            imageView.setMinimumHeight(500);
+            imageView.setMaxWidth(175);
             imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            imageView.setPadding(8, 8, 8, 8);
-            imageView.setTag("sample_" + position);
+            imageView.setPadding(6, 6, 8, 8);
         } else {
             imageView = (ImageView) convertView;
         }
+        imageView.setTag(mPosterUrls[position]);
 
-        imageView.setImageResource(mThumbIds[position]);
+        Log.i(TAG, "picasso loading URL: " + mPosterUrls[position]);
+        Picasso.with(context).load(mPosterUrls[position]).into(imageView);
         return imageView;
+    }
+
+    public void setMPosterUrls(String[] mPosterUrls) {
+        this.mPosterUrls = mPosterUrls;
     }
 }
