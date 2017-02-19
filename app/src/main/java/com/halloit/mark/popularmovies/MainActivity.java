@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.i(TAG, "MyTheMovieDBApiKeyV4: " + BuildConfig.THE_MOVIE_DB_API_KEY_V4);
+//        Log.i(TAG, "MyTheMovieDBApiKeyV4: " + BuildConfig.THE_MOVIE_DB_API_KEY_V4);
         Log.i(TAG, "MyTheMovieDBApiKeyV3: " + BuildConfig.THE_MOVIE_DB_API_KEY_V3);
         mGridView = (GridView) findViewById(R.id.main_grid_view);
         mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_indicator);
