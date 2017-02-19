@@ -13,31 +13,34 @@ import android.widget.ArrayAdapter;
 import android.widget.GridView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
+//import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener,
-        ImageMainAdapter.ImageMainAdapterOnClickHandler {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private static final String TAG = "MainActivity.java";
-    private Toast mToast;
+//    private Toast mToast;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.i("MyTheMovieDBApiKeyV4", BuildConfig.THE_MOVIE_DB_API_KEY_V4);
-        Log.i("MyTheMovieDBApiKeyV3", BuildConfig.THE_MOVIE_DB_API_KEY_V3);
+        Log.i(TAG, "MyTheMovieDBApiKeyV4: " + BuildConfig.THE_MOVIE_DB_API_KEY_V4);
+        Log.i(TAG, "MyTheMovieDBApiKeyV3: " + BuildConfig.THE_MOVIE_DB_API_KEY_V3);
         GridView gridview = (GridView) findViewById(R.id.main_grid_view);
-        gridview.setAdapter(new ImageMainAdapter(this, this));
+        gridview.setAdapter(new ImageMainAdapter(this));
 
         gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v,
                                     int position, long id) {
-                if (mToast != null) {
-                    mToast.cancel();
-                }
-                mToast = Toast.makeText(MainActivity.this, "" + position,
-                        Toast.LENGTH_SHORT);
-                mToast.show();
-                onClickImage(String.valueOf(position));
+//                if (mToast != null) {
+//                    mToast.cancel();
+//                }
+//                mToast = Toast.makeText(MainActivity.this, "" + position,
+//                        Toast.LENGTH_SHORT);
+//                mToast.show();
+                Intent intent = new Intent(MainActivity.this, DetailActivity.class);
+
+                // TODO put movie detail in the additional content
+                intent.putExtra(Intent.EXTRA_TEXT, (String) v.getTag());
+                startActivity(intent);
             }
         });
     }
@@ -74,12 +77,5 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
 
-    }
-
-    @Override
-    public void onClickImage(String id) {
-        Intent intent = new Intent(this, DetailActivity.class);
-        intent.putExtra(Intent.EXTRA_TEXT, id);
-        startActivity(intent);
     }
 }

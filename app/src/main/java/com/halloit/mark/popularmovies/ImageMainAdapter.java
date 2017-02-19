@@ -4,7 +4,6 @@ import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.GridView;
 import android.widget.ImageView;
 
 /**
@@ -13,7 +12,6 @@ import android.widget.ImageView;
 
 class ImageMainAdapter extends BaseAdapter {
     private final Context context;
-    private final ImageMainAdapterOnClickHandler mHandler;
     private final int[] mThumbIds = {
             R.drawable.sample_0, R.drawable.sample_1,
             R.drawable.sample_2, R.drawable.sample_3,
@@ -21,13 +19,8 @@ class ImageMainAdapter extends BaseAdapter {
             R.drawable.sample_6, R.drawable.sample_7
     };
 
-    interface ImageMainAdapterOnClickHandler {
-        void onClickImage(String id);
-    }
-
-    ImageMainAdapter(Context c, ImageMainAdapterOnClickHandler handler) {
+    ImageMainAdapter(Context c) {
         context = c;
-        mHandler = handler;
     }
 
     @Override
@@ -51,9 +44,9 @@ class ImageMainAdapter extends BaseAdapter {
         if (convertView == null) {
             // if it's not recycled, initialize some attributes
             imageView = new ImageView(context);
-            imageView.setLayoutParams(new GridView.LayoutParams(85, 85));
-            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
             imageView.setPadding(8, 8, 8, 8);
+            imageView.setTag("sample_" + position);
         } else {
             imageView = (ImageView) convertView;
         }

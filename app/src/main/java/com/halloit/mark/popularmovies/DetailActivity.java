@@ -17,7 +17,7 @@ public class DetailActivity extends AppCompatActivity {
             String content = intent.getStringExtra(Intent.EXTRA_TEXT);
             Log.i(TAG, "intent content: " + content);
             Integer id = getResources().getIdentifier(
-                    "sample_" + content,
+                    content,
                     "drawable",
                     getPackageName());
             ((ImageView) findViewById(R.id.dv_image)).setImageResource(id);
