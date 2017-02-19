@@ -1,5 +1,7 @@
 package com.halloit.mark.popularmovies;
 
+import android.content.Intent;
+import android.graphics.Color;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -8,16 +10,36 @@ import android.view.Menu;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.GridView;
 import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener{
-    public static final String TAG = "MainActivity.java";
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener,
+        ImageMainAdapter.ImageMainAdapterOnClickHandler {
+    private static final String TAG = "MainActivity.java";
+    private Toast mToast;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.i("MyTheMovieDBApiKeyV4", BuildConfig.THE_MOVIE_DB_API_KEY_V4);
         Log.i("MyTheMovieDBApiKeyV3", BuildConfig.THE_MOVIE_DB_API_KEY_V3);
+        GridView gridview = (GridView) findViewById(R.id.main_grid_view);
+        gridview.setAdapter(new ImageMainAdapter(this, this));
+
+        gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View v,
+                                    int position, long id) {
+                if (mToast != null) {
+                    mToast.cancel();
+                }
+                mToast = Toast.makeText(MainActivity.this, "" + position,
+                        Toast.LENGTH_SHORT);
+                mToast.show();
+                onClickImage(String.valueOf(position));
+            }
+        });
     }
 
     @Override
@@ -36,12 +58,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-        if (((String) parent.getItemAtPosition(pos)).equals("Top Rated")) {
+        ((TextView) parent.getChildAt(0)).setTextColor(Color.WHITE);
+        if (parent.getItemAtPosition(pos).equals("Top Rated")) {
             Log.i(TAG, "selection: Top Rated");
             // TODO change sort order as necessary
             // TODO implement logic for reload
         }
-        if (((String) parent.getItemAtPosition(pos)).equals("Popular")) {
+        if (parent.getItemAtPosition(pos).equals("Popular")) {
             Log.i(TAG, "selection: Popular");
             // TODO change sort order as necessary
             // TODO implement logic for reload
@@ -53,4 +76,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
+    @Override
+    public void onClickImage(String id) {
+        Intent intent = new Intent(this, DetailActivity.class);
+        intent.putExtra(Intent.EXTRA_TEXT, id);
+        startActivity(intent);
+    }
 }
