@@ -9,6 +9,7 @@ class Video {
     private String name;
     private String type;
     private String movieId;
+    static Video[] theVideos;
 
     void setUrlId (String urlId) {
         this.urlId = urlId;
@@ -40,6 +41,14 @@ class Video {
 
     void setMovieId(String movieId) {
         this.movieId = movieId;
+    }
+
+    static void setVideos(Video [] videos) {
+        theVideos = videos;
+    }
+
+    static Video[] getVideos() {
+        return theVideos;
     }
 
     @Override

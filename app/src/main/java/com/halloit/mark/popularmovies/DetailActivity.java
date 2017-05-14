@@ -3,6 +3,7 @@ package com.halloit.mark.popularmovies;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
@@ -15,6 +16,7 @@ import android.webkit.WebView;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,14 +34,8 @@ import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 
 public class DetailActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<String> {
     private static final String TAG = "DetailActivity.java";
-    private TextView mErrorView;
-    private ImageView mImageView;
-    private ProgressBar mProgressBar;
-    private LinearLayout mLinearLayoutMain;
-    private TextView mTitleView;
-    private TextView mDateView;
-    private TextView mScoreView;
-    private WebView mDescriptionView;
+    private LinearLayout mTrailerView;
+    private WebView mReviewView;
     private Long movieId;
     private CheckBox mFavoriteButton;
 
@@ -47,8 +43,8 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
             MovieEntry.COLUMN_IMAGE_FULL_PATH, MovieEntry.COLUMN_TITLE,
             MovieEntry.COLUMN_RELEASE_DATE, MovieEntry.COLUMN_VOTE_AVERAGE,
             MovieEntry.COLUMN_OVERVIEW, MovieEntry.COLUMN_FAVORITE};
-    private static final int IND_COLUMN__ID = 0;
-    private static final int IND_COLUMN_MOVIE_ID = 1;
+//    private static final int IND_COLUMN__ID = 0;
+//    private static final int IND_COLUMN_MOVIE_ID = 1;
     private static final int IND_COLUMN_IMAGE_FULL_PATH = 2;
     private static final int IND_COLUMN_TITLE = 3;
     private static final int IND_COLUMN_RELEASE_DATE = 4;
@@ -64,15 +60,17 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
-        mImageView = (ImageView) findViewById(R.id.dv_image);
-        mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_detail);
-        mErrorView = (TextView) findViewById(R.id.tv_error_detail);
-        mLinearLayoutMain = (LinearLayout) findViewById(R.id.ll_detail_main);
-        mTitleView = (TextView) findViewById(R.id.tv_detail_title);
-        mDateView = (TextView) findViewById(R.id.tv_detail_date);
-        mScoreView = (TextView) findViewById(R.id.tv_detail_score);
-        mDescriptionView = (WebView) findViewById(R.id.tv_detail_description);
+        ImageView mImageView = (ImageView) findViewById(R.id.dv_image);
+        ProgressBar mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_detail);
+        TextView mErrorView = (TextView) findViewById(R.id.tv_error_detail);
+        LinearLayout mLinearLayoutMain = (LinearLayout) findViewById(R.id.ll_detail_main);
+        TextView mTitleView = (TextView) findViewById(R.id.tv_detail_title);
+        TextView mDateView = (TextView) findViewById(R.id.tv_detail_date);
+        TextView mScoreView = (TextView) findViewById(R.id.tv_detail_score);
+        WebView mDescriptionView = (WebView) findViewById(R.id.tv_detail_description);
         mFavoriteButton = (CheckBox) findViewById(R.id.ib_favorite);
+        mReviewView = (WebView) findViewById(R.id.wv_reviews);
+        mTrailerView = (LinearLayout) findViewById(R.id.ll_trailer);
         Intent intent = getIntent();
         getSupportLoaderManager().initLoader(MOVIEDB_DETAIL_SEARCH_LOADER, null, this);
         if (intent.hasExtra(Intent.EXTRA_TEXT)) {
@@ -197,20 +195,11 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
             return;
         }
         try {
-            Cursor c = getContentResolver().query(MovieEntry.buildMovieUriWithId(movieId),
-                    COLUMN_PROJECTION, null, null, null);
-            if (c == null) return;
-            if (c.getCount() < 1) {
-                c.close();
-                return;
-            }
-            c.moveToFirst();
-            StringBuilder htmlString = new StringBuilder(getString(R.string.html_prefix) +
-                    getString(R.string.html_new_paragraph) + c.getString(IND_COLUMN_OVERVIEW) +
-                    getString(R.string.html_end_paragraph));
+            StringBuilder htmlReviews = new StringBuilder(getString(R.string.html_prefix));
             JSONObject movieJ = new JSONObject(movieDetails);
             JSONArray videos = movieJ.getJSONObject("videos").getJSONArray("results");
             int len = videos.length();
+            Video[] theVideos = new Video[len];
             for (int i = 0; i < len; i++) {
                 JSONObject videoJ = videos.getJSONObject(i);
                 Log.i(TAG, videoJ.toString(2));
@@ -221,66 +210,49 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
                 v.setType(videoJ.getString("type"));
                 Log.i(TAG, "adding video" + v);
                 Log.i(TAG, "building string");
-                // TODO refactor into a horizontal scrollview with recyclerView to hold images
-                // TODO should launch youtube androidly
-                if (i == 0) htmlString.append(getString(R.string.html_new_paragraph))
-                        .append(getString(R.string.html_bold_ul_start))
-                        .append(getString(R.string.trailers))
-                        .append(getString(R.string.html_bold_ul_stop))
-                        .append(getString(R.string.html_end_paragraph))
-                        .append(getString(R.string.html_start_table));
-                if (i % 2 == 0) {
-                    htmlString.append(getString(R.string.html_start_tr));
-                }
-                htmlString.append(getString(R.string.html_start_td))
-                        .append(getString(R.string.html_start_anchor))
-                        .append(YOUTUBE_LINK_URL)
-                        .append(v.getUrlId())
-                        .append(getString(R.string.html_complete_quote_tag))
-                        .append(v.getName()).append(" - ").append(v.getType())
-                        .append(getString(R.string.html_br))
-                        .append(getString(R.string.html_start_img))
-                        .append(YOUTUBE_IMAGE_URL)
-                        .append(v.getUrlId())
-                        .append(YOUTUBE_IMAGE_Q)
-                        .append(getString(R.string.html_complete_quote_tag))
-                        .append(getString(R.string.html_close_anchor))
-                        .append(getString(R.string.html_end_td));
-                if (i % 2 == 1) {
-                    htmlString.append(getString(R.string.html_end_tr))
-                            .append(getString(R.string.html_start_tr))
-                            .append(getString(R.string.html_start_td))
-                            .append(getString(R.string.html_3_space))
-                            .append(getString(R.string.html_end_td))
-                            .append(getString(R.string.html_start_td))
-                            .append(getString(R.string.html_3_space))
-                            .append(getString(R.string.html_end_td))
-                            .append(getString(R.string.html_end_tr));
-                }
-                Log.i(TAG, htmlString.toString());
+                theVideos[i] = v;
+                // TODO could be a recyclerView
             }
-            if (len % 2 == 1) {
-                htmlString.append(getString(R.string.html_start_td))
-                        .append(getString(R.string.html_end_td))
-                        .append(getString(R.string.html_end_tr));
+            Video.setVideos(theVideos);
+            ListAdapter adapter = new ImageTrailerAdapter(DetailActivity.this);
+            final int adapterCount = adapter.getCount();
+            for (int i = 0; i < adapterCount; i++) {
+                View item = adapter.getView(i, null, null);
+                item.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Log.i(TAG, v.getTag().toString());
+                        Intent intent = new Intent(Intent.ACTION_VIEW,
+                                Uri.parse(YOUTUBE_LINK_URL + v.getTag()));
+                        startActivity(intent);
+                    }
+                });
+                mTrailerView.addView(item);
+            }if (adapterCount == 0) {
+                findViewById(R.id.tv_trailers).setVisibility(View.GONE);
+                mTrailerView.setVisibility(View.GONE);
+            } else {
+                mTrailerView.setVisibility(View.VISIBLE);
+                mTrailerView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Log.i(TAG, v.toString());
+                    }
+                });
             }
-            if (len > 0) {
-                htmlString.append(getString(R.string.html_end_table));
-            }
-            htmlString.append(getString(R.string.html_suffix));
             JSONArray reviews = movieJ.getJSONObject("reviews").getJSONArray("results");
             len = reviews.length();
             for (int i = 0; i < len; i++) {
                 JSONObject reviewJ = reviews.getJSONObject(i);
-                htmlString.append(getString(R.string.html_new_paragraph));
+                htmlReviews.append(getString(R.string.html_new_paragraph));
                 if (i == 0) {
-                    htmlString.append(getString(R.string.html_bold_ul_start))
+                    htmlReviews.append(getString(R.string.html_bold_ul_start))
                             .append(getString(R.string.reviews))
                             .append(getString(R.string.html_bold_ul_stop))
                             .append(getString(R.string.html_end_paragraph))
                             .append(getString(R.string.html_new_paragraph));
                 }
-                htmlString.append(getString(R.string.html_bold_start))
+                htmlReviews.append(getString(R.string.html_bold_start))
                         .append(reviewJ.getString("author"))
                         .append(getString(R.string.html_bold_stop))
                         .append(getString(R.string.html_br))
@@ -288,8 +260,8 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
                         .append(getString(R.string.html_end_paragraph));
 
             }
-            Log.i(TAG, htmlString.toString());
-            mDescriptionView.loadData(htmlString.toString(),
+            Log.i(TAG, htmlReviews.toString());
+            mReviewView.loadData(htmlReviews.toString(),
                     "text/html; charset=utf-8", "utf-8");
         } catch (JSONException e) {
             Log.i(TAG, e.toString());

@@ -11,6 +11,7 @@
     <string name="trailers">Trailers</string>
     <string name="reviews">Reviews</string>
     <string name="vote_score">%1$.1f/10</string>
+    <string name="video_title">%1$s - %2$s</string>
     <string name="html_prefix">
 <![CDATA[
 <body style="text-align:justify">
@@ -53,7 +54,7 @@
     </string>
     <string name="html_start_td">
 <![CDATA[
-<td width="45%">
+<td width="200px" height="100px">
 ]]>
     </string>
     <string name="html_end_td">
@@ -73,7 +74,7 @@
     </string>
     <string name="html_start_img">
 <![CDATA[
-<img width="100%" src="
+<img width="200px" src="
 ]]>
     </string>
     <string name="html_complete_quote_tag">
