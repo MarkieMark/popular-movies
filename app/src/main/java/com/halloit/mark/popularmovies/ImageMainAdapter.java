@@ -20,28 +20,34 @@ import com.squareup.picasso.Picasso;
 class ImageMainAdapter extends BaseAdapter {
     private static final String TAG = "ImageMainAdapter.java";
     private final Context context;
-    private final boolean isPop;
+    private final boolean isPop, isFav;
     private static final String[] COLUMN_PROJECTION = {MovieEntry.COLUMN_MOVIE_ID,
             MovieEntry.COLUMN_IMAGE_FULL_PATH};
     private static final int IND_COLUMN_MOVIE_ID = 0;
     private static final int IND_COLUMN_IMAGE_FULL_PATH = 1;
 
-    ImageMainAdapter(Context c, boolean isPop) {
+    ImageMainAdapter(Context c, boolean isPop, boolean isFav) {
         context = c;
         this.isPop = isPop;
+        this.isFav = isFav;
     }
 
     @Override
     public int getCount() {
         String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
-        if (! isPop) selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
         Uri uri = MovieEntry.CONTENT_URI;
+        if (isFav) {
+            selectionCol = MovieEntry.COLUMN_FAVORITE;
+        } else if (!isPop) {
+            selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
+        }
         int ret = 0;
         Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
                 selectionCol + " > 0 ", null, null);
         if (c != null) {
             ret = c.getCount();
-            Log.i(TAG, "getCount(); isPop = " + isPop + ", number of Entries " + ret);
+            Log.i(TAG, "getCount(); isPop = " + isPop + ", isFav = " + isFav +
+                    ", number of Entries " + ret);
             c.close();
         }
         return ret;
@@ -71,20 +77,31 @@ class ImageMainAdapter extends BaseAdapter {
             imageView = (ImageView) convertView;
         }
         Uri uri = MovieEntry.CONTENT_URI;
-        String[] selectionArgs = {String.valueOf(position + 1)};
-        String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
-        if (! this.isPop) selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
-        Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
-                selectionCol + " = ? ", selectionArgs, null);
         String path = "no path";
         Long movieId = -1L;
-        if (c != null) {
-            if (c.getCount() > 0) {
-                c.moveToFirst();
+        if (isFav) {
+            Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
+                    MovieEntry.COLUMN_FAVORITE + " = 1 ", null, MovieEntry._ID);
+            if (c != null) {
+                c.moveToPosition(position);
                 path = c.getString(IND_COLUMN_IMAGE_FULL_PATH);
                 movieId = c.getLong(IND_COLUMN_MOVIE_ID);
+                c.close();
             }
-            c.close();
+        } else {
+            String[] selectionArgs = {String.valueOf(position + 1)};
+            String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
+            if (!isPop) selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
+            Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
+                    selectionCol + " = ? ", selectionArgs, null);
+            if (c != null) {
+                if (c.getCount() > 0) {
+                    c.moveToFirst();
+                    path = c.getString(IND_COLUMN_IMAGE_FULL_PATH);
+                    movieId = c.getLong(IND_COLUMN_MOVIE_ID);
+                }
+                c.close();
+            }
         }
         imageView.setTag(String.valueOf(movieId));
         Log.i(TAG, "picasso loading URL: " + path);

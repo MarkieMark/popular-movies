@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.util.Log;
 
 /**
  * Mark Benjamin 5/12/17.
@@ -32,6 +33,7 @@ class MovieContract {
         static final String COLUMN_ORIGINAL_LANGUAGE = "original_language";
         static final String COLUMN_OVERVIEW = "overview";
         static final String COLUMN_IMAGE_FULL_PATH = "image_full_path";
+        static final String COLUMN_FAVORITE = "favorite";
         static Uri buildMovieUriWithId(long id) {
             return CONTENT_URI.buildUpon()
                     .appendPath(Long.toString(id))
@@ -40,8 +42,9 @@ class MovieContract {
     }
 
     class MovieDbHelper extends SQLiteOpenHelper {
+        private static final String TAG = "MovieDbHelper";
         private static final String DATABASE_NAME = "popular_movies.db";
-        private static final int DATABASE_VERSION = 2;
+        private static final int DATABASE_VERSION = 1;
         private final String SQL_CREATE_MOVIE_TABLE = "CREATE TABLE " +
                 MovieEntry.TABLE_NAME + " ( " +
                 MovieEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -57,6 +60,7 @@ class MovieContract {
                 MovieEntry.COLUMN_ORIGINAL_LANGUAGE + " TEXT, " +
                 MovieEntry.COLUMN_OVERVIEW + " TEXT, " +
                 MovieEntry.COLUMN_IMAGE_FULL_PATH + " TEXT, " +
+                MovieEntry.COLUMN_FAVORITE + " INTEGER DEFAULT 0, " +
                 "UNIQUE ( " + MovieEntry.COLUMN_MOVIE_ID + " ) ON CONFLICT REPLACE ) ;";
 
         MovieDbHelper(Context c) {
@@ -65,13 +69,23 @@ class MovieContract {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            db.execSQL(SQL_CREATE_MOVIE_TABLE);
+            Log.i(TAG, "OnCreate");
+            try {
+                db.execSQL(SQL_CREATE_MOVIE_TABLE);
+            } catch (Exception E) {
+                E.printStackTrace();
+            }
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            db.execSQL("DROP TABLE IF EXISTS " + MovieEntry.TABLE_NAME);
-            onCreate(db);
+            Log.i(TAG, "Database Upgrade from " + oldVersion + " to " + newVersion);
+            try {
+                db.execSQL("DROP TABLE IF EXISTS " + MovieEntry.TABLE_NAME);
+                onCreate(db);
+            } catch (Exception E) {
+                E.printStackTrace();
+            }
         }
     }
 }

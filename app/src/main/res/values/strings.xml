@@ -5,10 +5,12 @@
     <string name="poster_image_alt">Movie Poster Image</string>
     <string name="no_network">No network found</string>
     <string name="no_connection">No internet connection</string>
+    <string name="no_favorites">No Favorites Found</string>
     <string name="content_authority">com.halloit.mark.popularmovies</string>
     <string name="favorite">Favorite</string>
     <string name="trailers">Trailers</string>
     <string name="reviews">Reviews</string>
+    <string name="vote_score">%1$.1f/10</string>
     <string name="html_prefix">
 <![CDATA[
 <body style="text-align:justify">
@@ -109,8 +111,10 @@
 </b>
 ]]>
     </string>
+    <string name="favorite_button">Favorite Button</string>
     <string-array name="sort_strings">
         <item>Popular</item>
         <item>Top Rated</item>
+        <item>Favorites</item>
     </string-array>
 </resources>

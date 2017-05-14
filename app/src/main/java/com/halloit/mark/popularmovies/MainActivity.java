@@ -2,6 +2,7 @@ package com.halloit.mark.popularmovies;
 
 import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -30,23 +31,22 @@ import java.io.IOException;
 import java.net.URL;
 
 // TODO optimize for reuse;
-// cache API json results;
 // reuse adapter when switching view type
 
-// TODO add favorites menu option
-// TODO add favorites main display retrieval
 
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private static final String TAG = "MainActivity.java";
-    private Boolean isPopular = true;
+    private DisplayType displayType = DisplayType.POPULAR;
+    // TODO make selection sticky / preference
     private GridView mGridView;
     private ProgressBar mProgressBar;
     private TextView mErrorView;
+    private enum DisplayType {POPULAR, TOP_RATED, FAVORITES}
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getContentResolver().delete(MovieEntry.CONTENT_URI, null, null);
+//        getContentResolver().delete(MovieEntry.CONTENT_URI, null, null);
         setContentView(R.layout.activity_main);
 //        Log.i(TAG, "MyTheMovieDBApiKeyV4: " + THE_MOVIE_DB_API_KEY_V4);
         Log.i(TAG, "MyTheMovieDBApiKeyV3: " + THE_MOVIE_DB_API_KEY_V3);
@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_indicator);
         mErrorView = (TextView) findViewById(R.id.tv_error);
         Log.i(TAG, "loading movies data");
-        loadMoviesData();
+        loadMoviesData(displayType);
 
         mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v,
@@ -83,28 +83,25 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
         ((TextView) parent.getChildAt(0)).setTextColor(Color.WHITE);
-        if (parent.getItemAtPosition(pos).equals("Top Rated")) {
-            Log.i(TAG, "selection: Top Rated");
-            if (isPopular) {
-                isPopular = false;
-                loadMoviesData();
-            }
-        }
         if (parent.getItemAtPosition(pos).equals("Popular")) {
             Log.i(TAG, "selection: Popular");
-            if (!isPopular) {
-                isPopular = true;
-                loadMoviesData();
-            }
+            displayType = DisplayType.POPULAR;
         }
+        if (parent.getItemAtPosition(pos).equals("Top Rated")) {
+            Log.i(TAG, "selection: Top Rated");
+            displayType = DisplayType.TOP_RATED;
+        }
+        if (parent.getItemAtPosition(pos).equals("Favorites")) {
+            displayType = DisplayType.FAVORITES;
+        }
+        loadMoviesData(displayType);
     }
 
     @Override
     public void onNothingSelected(AdapterView<?> parent) {
-
     }
 
-    private void loadMoviesData() {
+    private void loadMoviesData(DisplayType type) {
         if (! Utils.isNetworkConnected(this)) {
             mErrorView.setText(R.string.no_network);
             mErrorView.setVisibility(View.VISIBLE);
@@ -115,11 +112,27 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mGridView.setVisibility(View.INVISIBLE);
         mErrorView.setVisibility(View.INVISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
-        new FetchMovieListTask().execute(isPopular);
+        new FetchMovieListTask().execute(type);
     }
 
-    private class FetchMovieListTask extends AsyncTask<Boolean, Void, String> {
+    private void noFavorites() {
+        mErrorView.setText(R.string.no_favorites);
+        mErrorView.setVisibility(View.VISIBLE);
+        mGridView.setVisibility(View.INVISIBLE);
+        mProgressBar.setVisibility(View.INVISIBLE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (displayType == DisplayType.FAVORITES) { // Favorites may have changed
+            loadMoviesData(displayType);
+        }
+    }
+
+    private class FetchMovieListTask extends AsyncTask<DisplayType, Void, String> {
         private boolean isPop = true;
+        private boolean isFav = false;
         @Override
         protected void onPreExecute() {
             Log.i(TAG, "preparing to retrieve");
@@ -127,17 +140,21 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
         @Override
-        protected String doInBackground(Boolean... isPop) {
+        protected String doInBackground(DisplayType... type) {
             if (! Utils.isInternetAvailable()) {
                 return null;
             }
-            Log.i(TAG, "urlCodes length: " + isPop.length);
-            Log.i(TAG, "urlCodes[0]: " + isPop[0].toString());
-            this.isPop = isPop[0];
+            Log.i(TAG, "urlCodes length: " + type.length);
+            Log.i(TAG, "urlCodes[0]: " + type[0].toString());
+            isPop = (type[0] == DisplayType.POPULAR);
+            isFav = (type[0] == DisplayType.FAVORITES);
+            if (isFav) {
+                return null;
+            }
             String jsonMovieList = null;
             try {
                 URL url = new URL(POPULAR_BASE_URL + THE_MOVIE_DB_API_KEY_V3);
-                if (! this.isPop) {
+                if (!isPop) {
                     url = new URL(TOPRATED_BASE_URL + THE_MOVIE_DB_API_KEY_V3);
                 }
                 jsonMovieList = Utils.getResponseFromHttpUrl(url);
@@ -151,6 +168,24 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         @Override
         protected void onPostExecute(String moviesData) {
+            if (isFav) {
+                Cursor c = getContentResolver().query(MovieEntry.CONTENT_URI,
+                        null, MovieEntry.COLUMN_FAVORITE + " = 1 ", null, null);
+                if (c != null) {
+                    if (c.getCount() < 1) {
+                        noFavorites();
+                    } else {
+                        mGridView.setAdapter(new ImageMainAdapter(MainActivity.this,
+                                this.isPop, this.isFav));
+                        mProgressBar.setVisibility(View.INVISIBLE);
+                        mGridView.setVisibility(View.VISIBLE);
+                    }
+                    c.close();
+                    return;
+                }
+                noFavorites();
+                return;
+            }
             if (moviesData == null) {
                 mErrorView.setText(R.string.no_connection);
                 mErrorView.setVisibility(View.VISIBLE);
@@ -184,6 +219,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     values[i].put(MovieEntry.COLUMN_OVERVIEW, movieJ.getString("overview"));
                     values[i].put(MovieEntry.COLUMN_RELEASE_DATE, movieJ.getString("release_date"));
                     values[i].put(MovieEntry.COLUMN_VOTE_AVERAGE, movieJ.getDouble("vote_average"));
+                    // TODO handle retrieval of more than 20 movies
                     if (this.isPop) {
                         values[i].put(MovieEntry.COLUMN_POP_PRIORITY, i + 1);
                         values[i].put(MovieEntry.COLUMN_TR_PRIORITY, 0);
@@ -194,7 +230,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
                 Uri uri = MovieEntry.CONTENT_URI;
                 getContentResolver().bulkInsert(uri, values);
-                mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, this.isPop));
+                mGridView.setAdapter(new ImageMainAdapter(MainActivity.this,
+                        isPop, isFav));
                 mProgressBar.setVisibility(View.INVISIBLE);
                 mGridView.setVisibility(View.VISIBLE);
             } catch (JSONException e) {

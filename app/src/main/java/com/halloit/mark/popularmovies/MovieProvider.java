@@ -26,9 +26,11 @@ public class MovieProvider extends ContentProvider {
     private static final UriMatcher sUriMatcher = buildUriMatcher();
     private MovieDbHelper mOpenHelper;
 
-    private static final String[] PRIORITY_PROJECTION = {MovieEntry.COLUMN_POP_PRIORITY, MovieEntry.COLUMN_TR_PRIORITY};
+    private static final String[] PRIORITY_PROJECTION = {MovieEntry.COLUMN_POP_PRIORITY,
+            MovieEntry.COLUMN_TR_PRIORITY, MovieEntry.COLUMN_FAVORITE};
     private static final int IND_PRIORITY_POP = 0;
     private static final int IND_PRIORITY_TR = 1;
+    private static final int IND_FAVORITE = 2;
 
     private static UriMatcher buildUriMatcher() {
         UriMatcher ret = new UriMatcher(UriMatcher.NO_MATCH);
@@ -73,12 +75,14 @@ public class MovieProvider extends ContentProvider {
                                     value.put(MovieEntry.COLUMN_POP_PRIORITY,
                                             c.getInt(IND_PRIORITY_POP));
                                 }
+                                value.put(MovieEntry.COLUMN_FAVORITE,
+                                        c.getInt(IND_FAVORITE));
+                                c.close();
                             }
-                            long id = db.insert(MovieEntry.TABLE_NAME, null, value);
-                            if (id != -1) {
-                                rowsInserted++;
-                            }
-                            c.close();
+                        }
+                        long id = db.insert(MovieEntry.TABLE_NAME, null, value);
+                        if (id != -1) {
+                            rowsInserted++;
                         }
                     }
                     db.setTransactionSuccessful();
@@ -104,13 +108,10 @@ public class MovieProvider extends ContentProvider {
         Cursor ret;
         final SQLiteDatabase db = mOpenHelper.getReadableDatabase();
         switch(sUriMatcher.match(uri)) {
-            case CODE_MOVIES:
-                ret = db.query(MovieEntry.TABLE_NAME, projection, selection,
-                        selectionArgs, null, null, sortOrder);
-                break;
             case CODE_MOVIE_WITH_ID:
                 selection = MovieEntry.COLUMN_MOVIE_ID + " = ? ";
                 selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_MOVIES:
                 ret = db.query(MovieEntry.TABLE_NAME, projection, selection,
                         selectionArgs, null, null, sortOrder);
                 break;
@@ -138,15 +139,10 @@ public class MovieProvider extends ContentProvider {
         final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
         if (null == selection) selection = "1";
         switch (sUriMatcher.match(uri)) {
-            case CODE_MOVIES:
-                numRowsDeleted = db.delete(
-                        MovieEntry.TABLE_NAME,
-                        selection,
-                        selectionArgs);
-                break;
             case CODE_MOVIE_WITH_ID:
                 selection = MovieEntry.COLUMN_MOVIE_ID + " = ? ";
                 selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_MOVIES:
                 numRowsDeleted = db.delete(
                         MovieEntry.TABLE_NAME,
                         selection,
@@ -163,7 +159,25 @@ public class MovieProvider extends ContentProvider {
     }
 
     @Override
-    public int update(@NonNull Uri uri, @Nullable ContentValues values, @Nullable String selection, @Nullable String[] selectionArgs) {
-        throw new UnsupportedOperationException("update() method not implemented");
+    public int update(@NonNull Uri uri, @Nullable ContentValues values,
+                      @Nullable String selection, @Nullable String[] selectionArgs) {
+        int numberOfRowsAffected;
+        final SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+        switch(sUriMatcher.match(uri)) {
+            case CODE_MOVIE_WITH_ID:
+                selection = MovieEntry.COLUMN_MOVIE_ID + " = ? ";
+                selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_MOVIES:
+                numberOfRowsAffected = db.update(MovieEntry.TABLE_NAME, values,
+                        selection, selectionArgs);
+                break;
+            default:
+                throw new UnsupportedOperationException("update() method not implemented");
+        }
+        if (numberOfRowsAffected > 0) {
+            Context c = getContext();
+            if (c != null) c.getContentResolver().notifyChange(uri, null);
+        }
+        return numberOfRowsAffected;
     }
 }

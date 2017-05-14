@@ -1,17 +1,21 @@
 package com.halloit.mark.popularmovies;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.webkit.WebView;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -24,7 +28,6 @@ import java.net.URL;
 import static com.halloit.mark.popularmovies.BuildConfig.*;
 import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 
-// TODO favorites ContentProvider SQL database
 // TODO refactor AsyncTasks to TaskLoader.Callbacks with database backing too
 
 public class DetailActivity extends AppCompatActivity {
@@ -37,11 +40,13 @@ public class DetailActivity extends AppCompatActivity {
     private TextView mDateView;
     private TextView mScoreView;
     private WebView mDescriptionView;
+    private Long movieId;
+    private CheckBox mFavoriteButton;
 
     private static final String[] COLUMN_PROJECTION = {MovieEntry._ID, MovieEntry.COLUMN_MOVIE_ID,
             MovieEntry.COLUMN_IMAGE_FULL_PATH, MovieEntry.COLUMN_TITLE,
             MovieEntry.COLUMN_RELEASE_DATE, MovieEntry.COLUMN_VOTE_AVERAGE,
-            MovieEntry.COLUMN_OVERVIEW};
+            MovieEntry.COLUMN_OVERVIEW, MovieEntry.COLUMN_FAVORITE};
     private static final int IND_COLUMN__ID = 0;
     private static final int IND_COLUMN_MOVIE_ID = 1;
     private static final int IND_COLUMN_IMAGE_FULL_PATH = 2;
@@ -49,12 +54,11 @@ public class DetailActivity extends AppCompatActivity {
     private static final int IND_COLUMN_RELEASE_DATE = 4;
     private static final int IND_COLUMN_VOTE_AVERAGE = 5;
     private static final int IND_COLUMN_OVERVIEW = 6;
+    private static final int IND_COLUMN_FAVORITE = 7;
 
 // TODO spare imageview for spare image
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        //TODO add favorite button
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
         mImageView = (ImageView) findViewById(R.id.dv_image);
@@ -65,6 +69,7 @@ public class DetailActivity extends AppCompatActivity {
         mDateView = (TextView) findViewById(R.id.tv_detail_date);
         mScoreView = (TextView) findViewById(R.id.tv_detail_score);
         mDescriptionView = (WebView) findViewById(R.id.tv_detail_description);
+        mFavoriteButton = (CheckBox) findViewById(R.id.ib_favorite);
         Intent intent = getIntent();
         if (intent.hasExtra(Intent.EXTRA_TEXT)) {
             if (! Utils.isNetworkConnected(this)) {
@@ -77,7 +82,7 @@ public class DetailActivity extends AppCompatActivity {
             }
             // TODO check for actual connection
             String content = intent.getStringExtra(Intent.EXTRA_TEXT);
-            Long movieId = Long.valueOf(content);
+            movieId = Long.valueOf(content);
             Log.i(TAG, "intent content: " + content);
             Log.i(TAG, "movie details: " + movieId);
             mImageView.setMinimumHeight(500);
@@ -95,12 +100,38 @@ public class DetailActivity extends AppCompatActivity {
             new FetchMovieDetailsTask().execute(movieId);
             mTitleView.setText(c.getString(IND_COLUMN_TITLE));
             mDateView.setText(c.getString(IND_COLUMN_RELEASE_DATE).substring(0,4));
-            mScoreView.setText(String.valueOf(c.getString(IND_COLUMN_VOTE_AVERAGE)) + "/10");
+            mScoreView.setText(getString(R.string.vote_score, c.getFloat(IND_COLUMN_VOTE_AVERAGE)));
             mDescriptionView.loadData(getString(R.string.html_prefix) +
                     c.getString(IND_COLUMN_OVERVIEW) + getString(R.string.html_suffix),
                     "text/html; charset=utf-8", "utf-8");
+            mFavoriteButton.setChecked(c.getInt(IND_COLUMN_FAVORITE) > 0);
             c.close();
         }
+    }
+
+    public void toggleFavorite(View view) {
+        Log.i(TAG, "toggleFavorite()");
+        boolean isFavorite = mFavoriteButton.isChecked();
+        ContentValues value = new ContentValues();
+        String[] selectionArgs = new String[]{movieId.toString()};
+        value.put(MovieEntry.COLUMN_FAVORITE, isFavorite ? 1 : 0);
+        int numberOfRows = getContentResolver().update(MovieEntry.buildMovieUriWithId(movieId),
+                value, MovieEntry.COLUMN_MOVIE_ID + " = ? ", selectionArgs);
+        Cursor c = getContentResolver().query(MovieEntry.buildMovieUriWithId(movieId),
+                COLUMN_PROJECTION, null, null, null);
+        if (c == null) return;
+        if (c.getCount() < 1) {
+            c.close();
+            return;
+        }
+        c.moveToFirst();
+        String title = c.getString(IND_COLUMN_TITLE);
+        Toast toast = Toast.makeText(this, title + "\n" + (isFavorite ? "Added to" : "Removed From")
+                + " Favorites", Toast.LENGTH_LONG);
+        TextView v = (TextView) toast.getView().findViewById(android.R.id.message);
+        if( v != null) v.setGravity(Gravity.CENTER);
+        toast.show();
+        c.close();
     }
 
     private class FetchMovieDetailsTask extends AsyncTask<Long, Void, String> {

@@ -58,13 +58,20 @@
                         android:layout_gravity="center_horizontal"
                         android:textSize="18sp"
                         android:paddingTop="10dp"/>
-                    <!--<Button
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:id="@+id/button_favorite"
-                        android:text="@string/favorite"
-                        android:layout_gravity="center_horizontal|bottom"
-                        android:layout_marginTop="20dp"/>-->
+                    <CheckBox
+                        android:layout_width="100dp"
+                        android:layout_height="100dp"
+                        android:id="@+id/ib_favorite"
+                        android:button="@android:drawable/btn_star"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginLeft="30dp"
+                        android:layout_marginStart="30dp"
+                        android:onClick="toggleFavorite"
+                        android:background="@android:color/transparent"
+                        android:contentDescription="@string/favorite_button"
+                        android:text=""
+                        />
                 </LinearLayout>
             </LinearLayout>
             <WebView
