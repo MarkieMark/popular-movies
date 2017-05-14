@@ -1,11 +1,15 @@
 package com.halloit.mark.popularmovies;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
+
+import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 
 import com.squareup.picasso.Picasso;
 
@@ -16,14 +20,31 @@ import com.squareup.picasso.Picasso;
 class ImageMainAdapter extends BaseAdapter {
     private static final String TAG = "ImageMainAdapter.java";
     private final Context context;
+    private final boolean isPop;
+    private static final String[] COLUMN_PROJECTION = {MovieEntry.COLUMN_MOVIE_ID,
+            MovieEntry.COLUMN_IMAGE_FULL_PATH};
+    private static final int IND_COLUMN_MOVIE_ID = 0;
+    private static final int IND_COLUMN_IMAGE_FULL_PATH = 1;
 
-    ImageMainAdapter(Context c) {
+    ImageMainAdapter(Context c, boolean isPop) {
         context = c;
+        this.isPop = isPop;
     }
 
     @Override
     public int getCount() {
-        return Movie.getMovieList().length;
+        String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
+        if (! isPop) selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
+        Uri uri = MovieEntry.CONTENT_URI;
+        int ret = 0;
+        Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
+                selectionCol + " > 0 ", null, null);
+        if (c != null) {
+            ret = c.getCount();
+            Log.i(TAG, "getCount(); isPop = " + isPop + ", number of Entries " + ret);
+            c.close();
+        }
+        return ret;
     }
 
     @Override
@@ -49,10 +70,25 @@ class ImageMainAdapter extends BaseAdapter {
         } else {
             imageView = (ImageView) convertView;
         }
-        imageView.setTag(String.valueOf(position));
-
-        Log.i(TAG, "picasso loading URL: " + Movie.getMovieList()[position].getImageFullPath());
-        Picasso.with(context).load(Movie.getMovieList()[position].getImageFullPath()).into(imageView);
+        Uri uri = MovieEntry.CONTENT_URI;
+        String[] selectionArgs = {String.valueOf(position + 1)};
+        String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
+        if (! this.isPop) selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
+        Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
+                selectionCol + " = ? ", selectionArgs, null);
+        String path = "no path";
+        Long movieId = -1L;
+        if (c != null) {
+            if (c.getCount() > 0) {
+                c.moveToFirst();
+                path = c.getString(IND_COLUMN_IMAGE_FULL_PATH);
+                movieId = c.getLong(IND_COLUMN_MOVIE_ID);
+            }
+            c.close();
+        }
+        imageView.setTag(String.valueOf(movieId));
+        Log.i(TAG, "picasso loading URL: " + path);
+        Picasso.with(context).load(path).into(imageView);
         return imageView;
     }
 }

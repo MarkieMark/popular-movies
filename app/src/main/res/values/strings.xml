@@ -5,7 +5,10 @@
     <string name="poster_image_alt">Movie Poster Image</string>
     <string name="no_network">No network found</string>
     <string name="no_connection">No internet connection</string>
+    <string name="content_authority">com.halloit.mark.popularmovies</string>
     <string name="favorite">Favorite</string>
+    <string name="trailers">Trailers</string>
+    <string name="reviews">Reviews</string>
     <string name="html_prefix">
 <![CDATA[
 <body style="text-align:justify">
@@ -14,6 +17,96 @@
     <string name="html_suffix">
 <![CDATA[
 </body>
+]]>
+    </string>
+    <string name="html_new_paragraph">
+<![CDATA[
+<p>
+]]>
+    </string>
+    <string name="html_end_paragraph">
+<![CDATA[
+</p>
+]]>
+    </string>
+    <string name="html_start_table">
+<![CDATA[
+<table width="100%">
+]]>
+    </string>
+    <string name="html_end_table">
+<![CDATA[
+</table>
+]]>
+    </string>
+    <string name="html_start_tr">
+<![CDATA[
+<tr>
+]]>
+    </string>
+    <string name="html_end_tr">
+<![CDATA[
+</tr>
+]]>
+    </string>
+    <string name="html_start_td">
+<![CDATA[
+<td width="45%">
+]]>
+    </string>
+    <string name="html_end_td">
+<![CDATA[
+</td>
+]]>
+    </string>
+    <string name="html_br">
+<![CDATA[
+<br />
+]]>
+    </string>
+    <string name="html_start_anchor">
+<![CDATA[
+<a href="
+]]>
+    </string>
+    <string name="html_start_img">
+<![CDATA[
+<img width="100%" src="
+]]>
+    </string>
+    <string name="html_complete_quote_tag">
+<![CDATA[
+">
+]]>
+    </string>
+    <string name="html_close_anchor">
+<![CDATA[
+</a>
+]]>
+    </string>
+    <string name="html_3_space">
+<![CDATA[
+&nbsp;&nbsp;&nbsp;
+]]>
+    </string>
+    <string name="html_bold_ul_start">
+<![CDATA[
+<b><u>
+]]>
+    </string>
+    <string name="html_bold_ul_stop">
+<![CDATA[
+</u></b>
+]]>
+    </string>
+    <string name="html_bold_start">
+<![CDATA[
+<b>
+]]>
+    </string>
+    <string name="html_bold_stop">
+<![CDATA[
+</b>
 ]]>
     </string>
     <string-array name="sort_strings">

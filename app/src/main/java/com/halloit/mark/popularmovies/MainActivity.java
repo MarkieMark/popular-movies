@@ -1,7 +1,9 @@
 package com.halloit.mark.popularmovies;
 
+import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -16,17 +18,23 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
+
+import static com.halloit.mark.popularmovies.BuildConfig.*;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 // TODO optimize for reuse;
 // cache API json results;
 // reuse adapter when switching view type
+
+// TODO add favorites menu option
+// TODO add favorites main display retrieval
 
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
@@ -35,13 +43,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private GridView mGridView;
     private ProgressBar mProgressBar;
     private TextView mErrorView;
-    private Movie[] mMovies;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getContentResolver().delete(MovieEntry.CONTENT_URI, null, null);
         setContentView(R.layout.activity_main);
-//        Log.i(TAG, "MyTheMovieDBApiKeyV4: " + BuildConfig.THE_MOVIE_DB_API_KEY_V4);
-        Log.i(TAG, "MyTheMovieDBApiKeyV3: " + BuildConfig.THE_MOVIE_DB_API_KEY_V3);
+//        Log.i(TAG, "MyTheMovieDBApiKeyV4: " + THE_MOVIE_DB_API_KEY_V4);
+        Log.i(TAG, "MyTheMovieDBApiKeyV3: " + THE_MOVIE_DB_API_KEY_V3);
         mGridView = (GridView) findViewById(R.id.main_grid_view);
         mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_indicator);
         mErrorView = (TextView) findViewById(R.id.tv_error);
@@ -107,24 +115,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mGridView.setVisibility(View.INVISIBLE);
         mErrorView.setVisibility(View.INVISIBLE);
         mProgressBar.setVisibility(View.VISIBLE);
-        String baseURL;
-        if (isPopular) {
-            baseURL = BuildConfig.POPULAR_BASE_URL;
-        } else {
-            baseURL = BuildConfig.TOPRATED_BASE_URL;
-        }
-        URL url = null;
-        try {
-            url = new URL(baseURL + BuildConfig.THE_MOVIE_DB_API_KEY_V3);
-            Log.i(TAG, "url: " + url.toString());
-        } catch (MalformedURLException e) {
-            Log.i(TAG, e.toString());
-            e.printStackTrace();
-        }
-        new FetchMovieListTask().execute(url);
+        new FetchMovieListTask().execute(isPopular);
     }
 
-    class FetchMovieListTask extends AsyncTask<URL, Void, String> {
+    private class FetchMovieListTask extends AsyncTask<Boolean, Void, String> {
+        private boolean isPop = true;
         @Override
         protected void onPreExecute() {
             Log.i(TAG, "preparing to retrieve");
@@ -132,15 +127,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
         @Override
-        protected String doInBackground(URL... urls) {
+        protected String doInBackground(Boolean... isPop) {
             if (! Utils.isInternetAvailable()) {
                 return null;
             }
-            Log.i(TAG, "urls length: " + urls.length);
-            Log.i(TAG, "urls[0]: " + urls[0].toString());
+            Log.i(TAG, "urlCodes length: " + isPop.length);
+            Log.i(TAG, "urlCodes[0]: " + isPop[0].toString());
+            this.isPop = isPop[0];
             String jsonMovieList = null;
             try {
-                jsonMovieList = Utils.getResponseFromHttpUrl(urls[0]);
+                URL url = new URL(POPULAR_BASE_URL + THE_MOVIE_DB_API_KEY_V3);
+                if (! this.isPop) {
+                    url = new URL(TOPRATED_BASE_URL + THE_MOVIE_DB_API_KEY_V3);
+                }
+                jsonMovieList = Utils.getResponseFromHttpUrl(url);
                 Log.i(TAG, "jsonMovieList: " + jsonMovieList);
             } catch (IOException e) {
                 Log.i(TAG, e.toString());
@@ -163,24 +163,38 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 JSONObject moviesJ = new JSONObject(moviesData);
                 JSONArray results = moviesJ.getJSONArray("results");
                 int len = results.length();
-                mMovies = new Movie[len];
+                ContentValues[] values = new ContentValues[len];
                 for (int i = 0; i < len; i++) {
                     JSONObject movieJ = results.getJSONObject(i);
+                    Log.i(TAG, movieJ.toString(2));
                     String posterPath = movieJ.getString("poster_path");
                     Log.i(TAG, "image path: " + posterPath);
-                    mMovies[i] = new Movie();
-                    mMovies[i].setImageFullPath(BuildConfig.IMAGE_BASE_URL + "w185" + posterPath);
-                    mMovies[i].setPosterPath(posterPath);
-                    mMovies[i].setBackdropPath(movieJ.getString("backdrop_path"));
-                    mMovies[i].setTitle(movieJ.getString("title"));
-                    mMovies[i].setOriginalLanguage(movieJ.getString("original_language"));
-                    mMovies[i].setOriginalTitle(movieJ.getString("original_title"));
-                    mMovies[i].setOverview(movieJ.getString("overview"));
-                    mMovies[i].setReleaseDate(movieJ.getString("release_date"));
-                    mMovies[i].setVoteAverage(movieJ.getDouble("vote_average"));
+                    values[i] = new ContentValues();
+                    values[i].put(MovieEntry.COLUMN_IMAGE_FULL_PATH,
+                            IMAGE_BASE_URL + "w185" + posterPath);
+                    values[i].put(MovieEntry.COLUMN_POSTER_PATH, posterPath);
+                    values[i].put(MovieEntry.COLUMN_BACKDROP_PATH,
+                            movieJ.getString("backdrop_path"));
+                    values[i].put(MovieEntry.COLUMN_MOVIE_ID, movieJ.getLong("id"));
+                    values[i].put(MovieEntry.COLUMN_TITLE, movieJ.getString("title"));
+                    values[i].put(MovieEntry.COLUMN_ORIGINAL_LANGUAGE,
+                            movieJ.getString("original_language"));
+                    values[i].put(MovieEntry.COLUMN_ORIGINAL_TITLE,
+                            movieJ.getString("original_title"));
+                    values[i].put(MovieEntry.COLUMN_OVERVIEW, movieJ.getString("overview"));
+                    values[i].put(MovieEntry.COLUMN_RELEASE_DATE, movieJ.getString("release_date"));
+                    values[i].put(MovieEntry.COLUMN_VOTE_AVERAGE, movieJ.getDouble("vote_average"));
+                    if (this.isPop) {
+                        values[i].put(MovieEntry.COLUMN_POP_PRIORITY, i + 1);
+                        values[i].put(MovieEntry.COLUMN_TR_PRIORITY, 0);
+                    } else {
+                        values[i].put(MovieEntry.COLUMN_TR_PRIORITY, i + 1);
+                        values[i].put(MovieEntry.COLUMN_POP_PRIORITY, 0);
+                    }
                 }
-                Movie.setMovieList(mMovies);
-                mGridView.setAdapter(new ImageMainAdapter(MainActivity.this));
+                Uri uri = MovieEntry.CONTENT_URI;
+                getContentResolver().bulkInsert(uri, values);
+                mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, this.isPop));
                 mProgressBar.setVisibility(View.INVISIBLE);
                 mGridView.setVisibility(View.VISIBLE);
             } catch (JSONException e) {
