@@ -16,8 +16,6 @@ import android.widget.ImageView;
 
 import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 
-//import com.squareup.picasso.Picasso;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -125,8 +123,7 @@ class ImageMainAdapter extends BaseAdapter {
                 }
             }
             imageView.setTag(String.valueOf(movieId));
-            Log.i(TAG, "picasso loading URL: " + path);
-//        Picasso.with(context).load(path).into(imageView);
+            Log.i(TAG, "loading Image; URL " + path);
             new ImageRetrieval(imageView, path, movieId).start();
         } catch (Exception E) {
             E.printStackTrace();
@@ -158,13 +155,20 @@ class ImageMainAdapter extends BaseAdapter {
                     Log.i(TAG, "More than 1 entry for Movie " + movieId);
                 }
                 c.moveToFirst();
-                byte[] data;
                 try {
-                    data = c.getBlob(IND_COLUMN_POSTER);
+                    final byte[] data = c.getBlob(IND_COLUMN_POSTER);
                     if (data == null) {
                         c.close();
                         getNewImage();
                         return;
+                    } else {
+                        Handler handler = new Handler(Looper.getMainLooper());
+                        handler.post(new Runnable() {
+                            public void run() {
+                                view.setImageBitmap(BitmapFactory.decodeByteArray(
+                                        data, 0, data.length));
+                            }
+                        });
                     }
                 } catch (Exception E) {
                     E.printStackTrace();
@@ -172,14 +176,6 @@ class ImageMainAdapter extends BaseAdapter {
                     getNewImage();
                     return;
                 }
-                Handler handler = new Handler(Looper.getMainLooper());
-                final byte[] finalData = data;
-                handler.post(new Runnable() {
-                     public void run() {
-                         view.setImageBitmap(BitmapFactory.decodeByteArray(
-                                 finalData, 0, finalData.length));
-                     }
-                 });
                 c.close();
             } catch (Exception E) {
                 E.printStackTrace();
@@ -195,24 +191,22 @@ class ImageMainAdapter extends BaseAdapter {
                 BufferedInputStream bis = new BufferedInputStream(is);
 
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                int current = 0;
+                int current;
                 while ((current = bis.read()) != -1) {
                     buffer.write((byte) current);
                 }
-
-                byte[] data = buffer.toByteArray();
+                final byte[] data = buffer.toByteArray();
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.post(new Runnable() {
+                    public void run() {
+                        view.setImageBitmap(BitmapFactory.decodeByteArray(
+                                data, 0, data.length));
+                    }
+                });
                 ContentValues values = new ContentValues();
                 values.put(MovieEntry.COLUMN_POSTER, data);
                 context.getContentResolver().update(MovieEntry.buildMovieUriWithId(movieId),
                         values, null, null);
-                Handler handler = new Handler(Looper.getMainLooper());
-                final byte[] finalData = data;
-                handler.post(new Runnable() {
-                    public void run() {
-                        view.setImageBitmap(BitmapFactory.decodeByteArray(
-                                finalData, 0, finalData.length));
-                    }
-                });
             } catch (Exception E) {
                 Log.i(TAG, E.toString());
                 E.printStackTrace();

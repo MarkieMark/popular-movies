@@ -36,7 +36,8 @@ import java.net.URL;
 
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener,
-        LoaderManager.LoaderCallbacks<Utils.BooleanString> {
+        LoaderManager.LoaderCallbacks<Utils.BooleanString>, SharedPreferences.OnSharedPreferenceChangeListener {
+
     private enum DisplayType {POPULAR, TOP_RATED, FAVORITES}
     private static final String TAG = "MainActivity";
     private static final String KEY_MOVIE_LIST_IS_FAVORITE = "movie_list_favorite";
@@ -48,6 +49,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private GridView mGridView;
     private ProgressBar mProgressBar;
     private TextView mErrorView;
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (getString(R.string.pref_number_key).equals(key)) {
+            lengthLimit = Integer.valueOf(sharedPreferences.getString(key,
+                    getString(R.string.pref_number_default)));
+        }
+    }
 
     @Override
     public Loader<Utils.BooleanString> onCreateLoader(int id, final Bundle args) {
@@ -197,6 +206,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mGridView = (GridView) findViewById(R.id.main_grid_view);
         mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_indicator);
         mErrorView = (TextView) findViewById(R.id.tv_error);
+        lengthLimit = Integer.valueOf(PreferenceManager.getDefaultSharedPreferences(this)
+                .getString(getString(R.string.pref_number_key),
+                getString(R.string.pref_number_default)));
         Log.i(TAG, "loading movies data");
         loadMoviesData(displayType, 0);
 
@@ -226,6 +238,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 getResources().getBoolean(R.bool.pref_remember_type_default))) {
             int pos = sharedPreferences.getInt(getString(R.string.pref_type), 0);
             spinner.setSelection(pos);
+            displayType = DisplayType.values()[pos];
         }
         return true;
     }
@@ -233,18 +246,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
         ((TextView) parent.getChildAt(0)).setTextColor(Color.WHITE);
-        String selection = parent.getItemAtPosition(pos).toString();
-        if ("Popular".equals(selection)) {
-            Log.i(TAG, "selection: Popular");
-            displayType = DisplayType.POPULAR;
-        }
-        if ("Top Rated".equals(selection)) {
-            Log.i(TAG, "selection: Top Rated");
-            displayType = DisplayType.TOP_RATED;
-        }
-        if ("Favorites".equals(selection)) {
-            displayType = DisplayType.FAVORITES;
-        }
+        displayType = DisplayType.values()[pos];
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         boolean rememberType = sharedPreferences.getBoolean(
                 getString(R.string.pref_remember_type_key),
@@ -303,6 +305,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     protected void onResume() {
         super.onResume();
+        Log.i(TAG, "onResume() displayType " + displayType.name());
         if (displayType == DisplayType.FAVORITES) { // Favorites may have changed
             loadMoviesData(displayType, 0);
         }
