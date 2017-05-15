@@ -111,13 +111,17 @@ class MovieContract {
                 VideoEntry.COLUMN_VIDEO_KEY + " TEXT NOT NULL, " +
                 VideoEntry.COLUMN_VIDEO_TITLE + " TEXT, " +
                 VideoEntry.COLUMN_VIDEO_TYPE + " TEXT, " +
-                VideoEntry.COLUMN_VIDEO_IMAGE + " BLOB DEFAULT NULL ) ;";
+                VideoEntry.COLUMN_VIDEO_IMAGE + " BLOB DEFAULT NULL, " +
+                " UNIQUE ( " + VideoEntry.COLUMN_VIDEO_KEY + " ) ON CONFLICT REPLACE ) ;";
         private final String SQL_CREATE_REVIEW_TABLE = "CREATE TABLE " +
                 ReviewEntry.TABLE_NAME + " ( " +
                 ReviewEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 ReviewEntry.COLUMN_REVIEW_MOVIE_ID + " INTEGER NOT NULL, " +
                 ReviewEntry.COLUMN_REVIEW_AUTHOR + " TEXT, " +
-                ReviewEntry.COLUMN_REVIEW_CONTENT + " TEXT ) ;";
+                ReviewEntry.COLUMN_REVIEW_CONTENT + " TEXT, " +
+                "UNIQUE ( " + ReviewEntry.COLUMN_REVIEW_CONTENT + " , " +
+                ReviewEntry.COLUMN_REVIEW_MOVIE_ID + " , " +
+                ReviewEntry.COLUMN_REVIEW_AUTHOR + " ) ON CONFLICT REPLACE ) ;";
 
         MovieDbHelper(Context c) {
             super(c, DATABASE_NAME, null, DATABASE_VERSION);
