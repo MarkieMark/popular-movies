@@ -28,6 +28,8 @@ android {
         it.buildConfigField 'String', 'IMAGE_BASE_URL', ImageBaseURL
         it.buildConfigField 'String', 'MOVIE_DETAIL_URL', MovieDetailURL
         it.buildConfigField 'String', 'URL_TRAILER_Q', URLTrailerQ
+        it.buildConfigField 'String', 'URL_VIDEO_Q', URLVideoQ
+        it.buildConfigField 'String', 'URL_REVIEW_Q', URLReviewQ
         it.buildConfigField 'String', 'YOUTUBE_IMAGE_URL', YouTubeImageURL
         it.buildConfigField 'String', 'YOUTUBE_IMAGE_Q', YouTubeImageQ
         it.buildConfigField 'String', 'YOUTUBE_LINK_URL', YouTubeLinkURL

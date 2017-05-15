@@ -36,8 +36,10 @@ import java.net.URL;
 
 
 
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, LoaderManager.LoaderCallbacks<String> {
-    private static final String TAG = "MainActivity.java";
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener,
+        LoaderManager.LoaderCallbacks<Utils.BooleanString> {
+    private enum DisplayType {POPULAR, TOP_RATED, FAVORITES}
+    private static final String TAG = "MainActivity";
     private static final String KEY_MOVIE_LIST_IS_FAVORITE = "movie_list_favorite";
     private static final String KEY_MOVIE_LIST_IS_POPULAR = "movie_list_popular";
     private static final int MOVIE_DB_MAIN_SEARCH_LOADER = 712;
@@ -48,52 +50,49 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private TextView mErrorView;
 
     @Override
-    public Loader<String> onCreateLoader(int id, final Bundle args) {
+    public Loader<Utils.BooleanString> onCreateLoader(int id, final Bundle args) {
         final boolean isFav = args.getBoolean(KEY_MOVIE_LIST_IS_FAVORITE);
         final boolean isPop = args.getBoolean(KEY_MOVIE_LIST_IS_POPULAR);
-        return new AsyncTaskLoader<String>(this) {
+        return new AsyncTaskLoader<Utils.BooleanString>(this) {
             @Override
             protected void onStartLoading() {
                 forceLoad();
             }
 
             @Override
-            public String loadInBackground() {
-                if (! Utils.isInternetAvailable()) {
-                    return null;
+            public Utils.BooleanString loadInBackground() {
+                Utils.BooleanString ret = new Utils().new BooleanString(isFav, isPop);
+                if ((isFav) || (! Utils.isInternetAvailable())) {
+                    return ret;
                 }
-                if (isFav) {
-                    return null;
-                }
-                String jsonMovieList = null;
                 try {
                     URL url = new URL(POPULAR_BASE_URL + THE_MOVIE_DB_API_KEY_V3);
                     if (!isPop) {
                         url = new URL(TOPRATED_BASE_URL + THE_MOVIE_DB_API_KEY_V3);
                     }
-                    jsonMovieList = Utils.getResponseFromHttpUrl(url);
-                    Log.i(TAG, "jsonMovieList: " + jsonMovieList);
+                    ret.jsonString = Utils.getResponseFromHttpUrl(url);
+                    Log.i(TAG, "jsonMovieList: " + ret.jsonString);
                 } catch (IOException e) {
                     Log.i(TAG, e.toString());
                     e.printStackTrace();
                 }
-                return jsonMovieList;
+                return ret;
             }
         };
     }
 
     @Override
-    public void onLoadFinished(Loader<String> loader, String moviesData) {
-        if (displayType == DisplayType.FAVORITES) {
+    public void onLoadFinished(Loader<Utils.BooleanString> loader, Utils.BooleanString moviesData) {
+        boolean isFav = moviesData.isFav;
+        boolean isPop = moviesData.isPop;
+        if (isFav) {
             Cursor c = getContentResolver().query(MovieEntry.CONTENT_URI,
                     null, MovieEntry.COLUMN_FAVORITE + " = 1 ", null, null);
             if (c != null) {
                 if (c.getCount() < 1) {
                     noFavorites();
                 } else {
-                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this,
-                            displayType == DisplayType.POPULAR,
-                            displayType == DisplayType.FAVORITES));
+                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, true));
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
                 }
@@ -103,16 +102,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             noFavorites();
             return;
         }
-        if (moviesData == null) {
+        if (moviesData.jsonString == null) {
             mErrorView.setText(R.string.no_connection);
             mErrorView.setVisibility(View.VISIBLE);
             mGridView.setVisibility(View.INVISIBLE);
             mProgressBar.setVisibility(View.INVISIBLE);
             return;
         }
-        Log.i(TAG, moviesData);
+        Log.i(TAG, moviesData.jsonString);
         try {
-            JSONObject moviesJ = new JSONObject(moviesData);
+            JSONObject moviesJ = new JSONObject(moviesData.jsonString);
             JSONArray results = moviesJ.getJSONArray("results");
             int len = results.length();
             ContentValues[] values = new ContentValues[len];
@@ -137,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 values[i].put(MovieEntry.COLUMN_RELEASE_DATE, movieJ.getString("release_date"));
                 values[i].put(MovieEntry.COLUMN_VOTE_AVERAGE, movieJ.getDouble("vote_average"));
                 // TODO handle retrieval of more than 20 movies
-                if (displayType == DisplayType.POPULAR) {
+                if (isPop) {
                     values[i].put(MovieEntry.COLUMN_POP_PRIORITY, i + 1);
                     values[i].put(MovieEntry.COLUMN_TR_PRIORITY, 0);
                 } else {
@@ -147,9 +146,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
             Uri uri = MovieEntry.CONTENT_URI;
             getContentResolver().bulkInsert(uri, values);
-            mGridView.setAdapter(new ImageMainAdapter(MainActivity.this,
-                    displayType == DisplayType.POPULAR,
-                    displayType == DisplayType.FAVORITES));
+            mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
             mProgressBar.setVisibility(View.INVISIBLE);
             mGridView.setVisibility(View.VISIBLE);
         } catch (Exception E) {
@@ -159,11 +156,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onLoaderReset(Loader<String> loader) {
+    public void onLoaderReset(Loader<Utils.BooleanString> loader) {
 
     }
 
-    private enum DisplayType {POPULAR, TOP_RATED, FAVORITES}
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

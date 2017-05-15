@@ -53,11 +53,29 @@ class Utils {
     static boolean isInternetAvailable() {
         Log.i(TAG, "isInternetAvailable");
         try {
-            InetAddress ipAddr = InetAddress.getByName("themoviedb.com");
-            return !ipAddr.toString().equals("");
+            InetAddress ipAddress = InetAddress.getByName("themoviedb.com");
+            return !ipAddress.toString().equals("");
         } catch (Exception e) {
             Log.i(TAG, e.toString());
             return false;
+        }
+    }
+    class BooleanString {
+        String jsonString;
+        boolean isFav;
+        boolean isPop;
+        BooleanString(boolean isFav, boolean isPop) {
+            jsonString = null;
+            this.isFav = isFav;
+            this.isPop = isPop;
+        }
+    }
+    class Boolean1String {
+        String jsonString;
+        boolean isVideo;
+        Boolean1String(boolean isVideo) {
+            jsonString = null;
+            this.isVideo = isVideo;
         }
     }
 }

@@ -32,7 +32,8 @@ import java.net.URL;
 import static com.halloit.mark.popularmovies.BuildConfig.*;
 import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 
-public class DetailActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<String> {
+public class DetailActivity extends AppCompatActivity implements
+        LoaderManager.LoaderCallbacks<Utils.Boolean1String> {
     private static final String TAG = "DetailActivity.java";
     private LinearLayout mTrailerView;
     private WebView mReviewView;
@@ -53,9 +54,10 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
     private static final int IND_COLUMN_FAVORITE = 7;
 
     private static final String KEY_MOVIE_ID = "Movie_ID";
-    private static final int MOVIEDB_DETAIL_SEARCH_LOADER = 711;
+    private static final int MOVIE_DB_DETAIL_VIDEO_LOADER = 711;
+    private static final int MOVIE_DB_DETAIL_REVIEW_LOADER = 713;
 
-// TODO spare imageview for spare image
+// TODO spare ImageView for spare image
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,7 +74,7 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
         mReviewView = (WebView) findViewById(R.id.wv_reviews);
         mTrailerView = (LinearLayout) findViewById(R.id.ll_trailer);
         Intent intent = getIntent();
-        getSupportLoaderManager().initLoader(MOVIEDB_DETAIL_SEARCH_LOADER, null, this);
+        getSupportLoaderManager().initLoader(MOVIE_DB_DETAIL_VIDEO_LOADER, null, this);
         if (intent.hasExtra(Intent.EXTRA_TEXT)) {
             if (! Utils.isNetworkConnected(this)) {
                 mErrorView.setText(R.string.no_network);
@@ -102,11 +104,17 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
             Bundle bundle = new Bundle();
             bundle.putLong(KEY_MOVIE_ID, movieId);
             LoaderManager manager = getSupportLoaderManager();
-            Loader<String> loader = manager.getLoader(MOVIEDB_DETAIL_SEARCH_LOADER);
-            if (loader == null) {
-                manager.initLoader(MOVIEDB_DETAIL_SEARCH_LOADER, bundle, this);
+            Loader<String> videoLoader = manager.getLoader(MOVIE_DB_DETAIL_VIDEO_LOADER);
+            if (videoLoader == null) {
+                manager.initLoader(MOVIE_DB_DETAIL_VIDEO_LOADER, bundle, this);
             } else {
-                manager.restartLoader(MOVIEDB_DETAIL_SEARCH_LOADER, bundle, this);
+                manager.restartLoader(MOVIE_DB_DETAIL_VIDEO_LOADER, bundle, this);
+            }
+            Loader<String> reviewLoader = manager.getLoader(MOVIE_DB_DETAIL_REVIEW_LOADER);
+            if (reviewLoader == null) {
+                manager.initLoader(MOVIE_DB_DETAIL_REVIEW_LOADER, bundle, this);
+            } else {
+                manager.restartLoader(MOVIE_DB_DETAIL_REVIEW_LOADER, bundle, this);
             }
 //            new FetchMovieDetailsTask().execute(movieId);
             mTitleView.setText(c.getString(IND_COLUMN_TITLE));
@@ -155,114 +163,150 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
     }
 
     @Override
-    public Loader<String> onCreateLoader(int id, final Bundle args) {
-        return new AsyncTaskLoader<String>(this) {
-            @Override
-            protected void onStartLoading() {
-//                super.onStartLoading();
-                forceLoad();
-            }
+    public Loader<Utils.Boolean1String> onCreateLoader(int id, final Bundle args) {
+        switch(id) {
+            case MOVIE_DB_DETAIL_REVIEW_LOADER:
+                return new AsyncTaskLoader<Utils.Boolean1String>(this) {
+                    @Override
+                    protected void onStartLoading() {
+                        forceLoad();
+                    }
 
-            @Override
-            public String loadInBackground() {
-                if (! Utils.isInternetAvailable()) {
-                    return null;
-                }
-                movieId = args.getLong(KEY_MOVIE_ID);
-                Log.i(TAG, "movieId " + movieId);
-                String jsonMovieDetails = null;
-                try {
-                    // TODO URL for videos /movie/{id}/videos
-                    // TODO URL for reviews /movie/{id}/reviews
-                    URL url = new URL(MOVIE_DETAIL_URL + movieId +
-                            URL_TRAILER_Q + THE_MOVIE_DB_API_KEY_V3);
-                    Log.i(TAG, "url: " + url.toString());
-                    jsonMovieDetails = Utils.getResponseFromHttpUrl(url);
-                    Log.i(TAG, "jsonMovieDetails: " + jsonMovieDetails);
-                } catch (Exception e) {
-                    Log.i(TAG, e.toString());
-                    e.printStackTrace();
-                }
-                return jsonMovieDetails;
-            }
-        };
+                    @Override
+                    public Utils.Boolean1String loadInBackground() {
+                        Utils.Boolean1String ret = new Utils().new Boolean1String(false);
+                        if (!Utils.isInternetAvailable()) {
+                            return ret;
+                        }
+                        movieId = args.getLong(KEY_MOVIE_ID);
+                        Log.i(TAG, "movieId " + movieId);
+                        try {
+                            URL url = new URL(MOVIE_DETAIL_URL + movieId +
+                                    URL_REVIEW_Q + THE_MOVIE_DB_API_KEY_V3);
+                            Log.i(TAG, "url: " + url.toString());
+                            ret.jsonString = Utils.getResponseFromHttpUrl(url);
+                            Log.i(TAG, "review json: " + ret.jsonString);
+                        } catch (Exception e) {
+                            Log.i(TAG, e.toString());
+                            e.printStackTrace();
+                        }
+                        return ret;
+                    }
+                };
+            case MOVIE_DB_DETAIL_VIDEO_LOADER:
+                return new AsyncTaskLoader<Utils.Boolean1String>(this) {
+                    @Override
+                    protected void onStartLoading() {
+                        forceLoad();
+                    }
+
+                    @Override
+                    public Utils.Boolean1String loadInBackground() {
+                        Utils.Boolean1String ret = new Utils().new Boolean1String(true);
+                        if (!Utils.isInternetAvailable()) {
+                            return ret;
+                        }
+                        movieId = args.getLong(KEY_MOVIE_ID);
+                        Log.i(TAG, "movieId " + movieId);
+                        try {
+                            URL url = new URL(MOVIE_DETAIL_URL + movieId +
+                                    URL_VIDEO_Q + THE_MOVIE_DB_API_KEY_V3);
+                            Log.i(TAG, "url: " + url.toString());
+                            ret.jsonString = Utils.getResponseFromHttpUrl(url);
+                            Log.i(TAG, "video json: " + ret.jsonString);
+                        } catch (Exception e) {
+                            Log.i(TAG, e.toString());
+                            e.printStackTrace();
+                        }
+                        return ret;
+                    }
+                };
+            default:
+                throw new UnsupportedOperationException("unrecognized code " + id);
+        }
     }
 
     @Override
-    public void onLoadFinished(Loader<String> loader, String movieDetails) {
-        if (movieDetails == null) {
+    public void onLoadFinished(Loader<Utils.Boolean1String> loader,
+                               Utils.Boolean1String movieDetails) {
+        if ((movieDetails == null) || (movieDetails.jsonString == null)) {
             Log.i(TAG, "No Movie Details " + movieId);
             return;
         }
+        int len;
         try {
-            StringBuilder htmlReviews = new StringBuilder(getString(R.string.html_prefix));
-            JSONObject movieJ = new JSONObject(movieDetails);
-            JSONArray videos = movieJ.getJSONObject("videos").getJSONArray("results");
-            int len = videos.length();
-            Video[] theVideos = new Video[len];
-            for (int i = 0; i < len; i++) {
-                JSONObject videoJ = videos.getJSONObject(i);
-                Log.i(TAG, videoJ.toString(2));
-                Video v = new Video();
-                v.setMovieId(movieId.toString());
-                v.setName(videoJ.getString("name"));
-                v.setUrlId(videoJ.getString("key"));
-                v.setType(videoJ.getString("type"));
-                Log.i(TAG, "adding video" + v);
-                Log.i(TAG, "building string");
-                theVideos[i] = v;
-                // TODO could be a recyclerView
-            }
-            Video.setVideos(theVideos);
-            ListAdapter adapter = new ImageTrailerAdapter(DetailActivity.this);
-            final int adapterCount = adapter.getCount();
-            for (int i = 0; i < adapterCount; i++) {
-                View item = adapter.getView(i, null, null);
-                item.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Log.i(TAG, v.getTag().toString());
-                        Intent intent = new Intent(Intent.ACTION_VIEW,
-                                Uri.parse(YOUTUBE_LINK_URL + v.getTag()));
-                        startActivity(intent);
-                    }
-                });
-                mTrailerView.addView(item);
-            }if (adapterCount == 0) {
-                findViewById(R.id.tv_trailers).setVisibility(View.GONE);
-                mTrailerView.setVisibility(View.GONE);
-            } else {
-                mTrailerView.setVisibility(View.VISIBLE);
-                mTrailerView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Log.i(TAG, v.toString());
-                    }
-                });
-            }
-            JSONArray reviews = movieJ.getJSONObject("reviews").getJSONArray("results");
-            len = reviews.length();
-            for (int i = 0; i < len; i++) {
-                JSONObject reviewJ = reviews.getJSONObject(i);
-                htmlReviews.append(getString(R.string.html_new_paragraph));
-                if (i == 0) {
-                    htmlReviews.append(getString(R.string.html_bold_ul_start))
-                            .append(getString(R.string.reviews))
-                            .append(getString(R.string.html_bold_ul_stop))
-                            .append(getString(R.string.html_end_paragraph))
-                            .append(getString(R.string.html_new_paragraph));
+            JSONObject movieJ = new JSONObject(movieDetails.jsonString);
+            if (movieDetails.isVideo) {
+                JSONArray videos = movieJ.getJSONArray("results");
+                len = videos.length();
+                Video[] theVideos = new Video[len];
+                for (int i = 0; i < len; i++) {
+                    JSONObject videoJ = videos.getJSONObject(i);
+                    Log.i(TAG, videoJ.toString(2));
+                    Video v = new Video();
+                    v.setMovieId(movieId.toString());
+                    v.setName(videoJ.getString("name"));
+                    v.setUrlId(videoJ.getString("key"));
+                    v.setType(videoJ.getString("type"));
+                    Log.i(TAG, "adding video" + v);
+                    Log.i(TAG, "building jsonString");
+                    theVideos[i] = v;
+                    // TODO could be a recyclerView
                 }
-                htmlReviews.append(getString(R.string.html_bold_start))
-                        .append(reviewJ.getString("author"))
-                        .append(getString(R.string.html_bold_stop))
-                        .append(getString(R.string.html_br))
-                        .append(reviewJ.getString("content"))
-                        .append(getString(R.string.html_end_paragraph));
+                Video.setVideos(theVideos);
+                ListAdapter adapter = new ImageTrailerAdapter(DetailActivity.this);
+                final int adapterCount = adapter.getCount();
+                for (int i = 0; i < adapterCount; i++) {
+                    View item = adapter.getView(i, null, null);
+                    item.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Log.i(TAG, v.getTag().toString());
+                            Intent intent = new Intent(Intent.ACTION_VIEW,
+                                    Uri.parse(YOUTUBE_LINK_URL + v.getTag()));
+                            startActivity(intent);
+                        }
+                    });
+                    mTrailerView.addView(item);
+                }
+                if (adapterCount == 0) {
+                    findViewById(R.id.tv_trailers).setVisibility(View.GONE);
+                    mTrailerView.setVisibility(View.GONE);
+                } else {
+                    mTrailerView.setVisibility(View.VISIBLE);
+                    mTrailerView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Log.i(TAG, v.toString());
+                        }
+                    });
+                }
+            } else {
+                StringBuilder htmlReviews = new StringBuilder(getString(R.string.html_prefix));
+                JSONArray reviews = movieJ.getJSONArray("results");
+                len = reviews.length();
+                for (int i = 0; i < len; i++) {
+                    JSONObject reviewJ = reviews.getJSONObject(i);
+                    htmlReviews.append(getString(R.string.html_new_paragraph));
+                    if (i == 0) {
+                        htmlReviews.append(getString(R.string.html_bold_ul_start))
+                                .append(getString(R.string.reviews))
+                                .append(getString(R.string.html_bold_ul_stop))
+                                .append(getString(R.string.html_end_paragraph))
+                                .append(getString(R.string.html_new_paragraph));
+                    }
+                    htmlReviews.append(getString(R.string.html_bold_start))
+                            .append(reviewJ.getString("author"))
+                            .append(getString(R.string.html_bold_stop))
+                            .append(getString(R.string.html_br))
+                            .append(reviewJ.getString("content"))
+                            .append(getString(R.string.html_end_paragraph));
 
+                }
+                Log.i(TAG, htmlReviews.toString());
+                mReviewView.loadData(htmlReviews.toString(),
+                        "text/html; charset=utf-8", "utf-8");
             }
-            Log.i(TAG, htmlReviews.toString());
-            mReviewView.loadData(htmlReviews.toString(),
-                    "text/html; charset=utf-8", "utf-8");
         } catch (JSONException e) {
             Log.i(TAG, e.toString());
             e.printStackTrace();
@@ -270,7 +314,7 @@ public class DetailActivity extends AppCompatActivity implements LoaderManager.L
     }
 
     @Override
-    public void onLoaderReset(Loader<String> loader) {
+    public void onLoaderReset(Loader<Utils.Boolean1String> loader) {
 
     }
 }
