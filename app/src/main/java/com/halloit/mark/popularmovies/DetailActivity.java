@@ -3,6 +3,7 @@ package com.halloit.mark.popularmovies;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
@@ -47,7 +48,7 @@ public class DetailActivity extends AppCompatActivity implements
     private static final String[] COLUMN_MOVIE_PROJECTION = {MovieEntry._ID, MovieEntry.COLUMN_MOVIE_ID,
             MovieEntry.COLUMN_IMAGE_FULL_PATH, MovieEntry.COLUMN_TITLE,
             MovieEntry.COLUMN_RELEASE_DATE, MovieEntry.COLUMN_VOTE_AVERAGE,
-            MovieEntry.COLUMN_OVERVIEW, MovieEntry.COLUMN_FAVORITE};
+            MovieEntry.COLUMN_OVERVIEW, MovieEntry.COLUMN_FAVORITE, MovieEntry.COLUMN_POSTER};
     private static final String[] COLUMN_REVIEW_PROJECTION = {ReviewEntry._ID,
             ReviewEntry.COLUMN_REVIEW_MOVIE_ID, ReviewEntry.COLUMN_REVIEW_AUTHOR,
             ReviewEntry.COLUMN_REVIEW_CONTENT};
@@ -59,6 +60,7 @@ public class DetailActivity extends AppCompatActivity implements
     private static final int IND_COLUMN_VOTE_AVERAGE = 5;
     private static final int IND_COLUMN_OVERVIEW = 6;
     private static final int IND_COLUMN_FAVORITE = 7;
+    private static final int IND_COLUMN_POSTER = 8;
 
 //    private static final int IND_REVIEW_COLUMN__ID = 0;
 //    private static final int IND_REVIEW_COLUMN_MOVIE_ID = 1;
@@ -69,10 +71,10 @@ public class DetailActivity extends AppCompatActivity implements
     private static final int MOVIE_DB_DETAIL_VIDEO_LOADER = 711;
     private static final int MOVIE_DB_DETAIL_REVIEW_LOADER = 713;
 
-// TODO spare ImageView for spare image
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Immediate load of most of the data as it should already be present
         setContentView(R.layout.activity_detail);
         ImageView mImageView = (ImageView) findViewById(R.id.dv_image);
         mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_detail);
@@ -92,19 +94,39 @@ public class DetailActivity extends AppCompatActivity implements
             movieId = Long.valueOf(content);
             Log.i(TAG, "intent content: " + content);
             Log.i(TAG, "movie details: " + movieId);
-            mImageView.setMinimumHeight(500);
-            mImageView.setMinimumWidth(325);
+            mImageView.setMinimumHeight((int) getResources().getDimension(
+                    R.dimen.main_image_min_height));
+            mImageView.setMinimumWidth((int) getResources().getDimension(
+                    R.dimen.detail_image_min_width));
             Cursor c = getContentResolver().query(MovieEntry.buildMovieUriWithId(movieId),
                     COLUMN_MOVIE_PROJECTION, null, null, null);
-            if (c == null) { noData(); return; }
+            if (c == null) {
+                // can't even retrieve image path
+                noData();
+                return;
+            }
             if (c.getCount() < 1) {
                 c.close();
                 noData();
                 return;
             }
             c.moveToFirst();
-
-            Picasso.with(this).load(c.getString(IND_COLUMN_IMAGE_FULL_PATH)).into(mImageView);
+            try {
+                // initially, the image data should already be in the database
+                byte[] data = c.getBlob(IND_COLUMN_POSTER);
+                if (data != null) {
+                    mImageView.setImageBitmap(BitmapFactory.decodeByteArray(
+                            data, 0, data.length));
+                } else {
+                    // just in case
+                    Picasso.with(this).load(c.getString(IND_COLUMN_IMAGE_FULL_PATH)).into(mImageView);
+                }
+            } catch (Exception E) {
+                // absent data may throw some error
+                E.printStackTrace();
+                Picasso.with(this).load(c.getString(IND_COLUMN_IMAGE_FULL_PATH)).into(mImageView);
+            }
+            // retrieve the video thumbnails / youtube links
             Bundle bundle = new Bundle();
             bundle.putLong(KEY_MOVIE_ID, movieId);
             LoaderManager manager = getSupportLoaderManager();
@@ -114,13 +136,14 @@ public class DetailActivity extends AppCompatActivity implements
             } else {
                 manager.restartLoader(MOVIE_DB_DETAIL_VIDEO_LOADER, bundle, this);
             }
+            // retrieve the reviews
             Loader<String> reviewLoader = manager.getLoader(MOVIE_DB_DETAIL_REVIEW_LOADER);
             if (reviewLoader == null) {
                 manager.initLoader(MOVIE_DB_DETAIL_REVIEW_LOADER, bundle, this);
             } else {
                 manager.restartLoader(MOVIE_DB_DETAIL_REVIEW_LOADER, bundle, this);
             }
-//            new FetchMovieDetailsTask().execute(movieId);
+            // while that is happening, update the UI initially
             mTitleView.setText(c.getString(IND_COLUMN_TITLE));
             mDateView.setText(c.getString(IND_COLUMN_RELEASE_DATE).substring(0,4));
             mScoreView.setText(getString(R.string.vote_score, c.getFloat(IND_COLUMN_VOTE_AVERAGE)));
@@ -133,15 +156,19 @@ public class DetailActivity extends AppCompatActivity implements
     }
 
     public void toggleFavorite(View view) {
+        // handle favorite clicking
         Log.i(TAG, "toggleFavorite()");
         boolean isFavorite = mFavoriteButton.isChecked();
+        // update the database
         ContentValues value = new ContentValues();
         String[] selectionArgs = new String[]{movieId.toString()};
         value.put(MovieEntry.COLUMN_FAVORITE, isFavorite ? 1 : 0);
         int numberOfRows = getContentResolver().update(MovieEntry.buildMovieUriWithId(movieId),
                 value, MovieEntry.COLUMN_MOVIE_ID + " = ? ", selectionArgs);
         if (numberOfRows < 1) {
+            // 'undo' checkbox click
             mFavoriteButton.setChecked(!isFavorite);
+            // show error message
             Toast toast = Toast.makeText(this, "Error" + (isFavorite ? "Adding to" : "Removing From")
                     + " Favorites", Toast.LENGTH_LONG);
             TextView v = (TextView) toast.getView().findViewById(android.R.id.message);
@@ -149,6 +176,7 @@ public class DetailActivity extends AppCompatActivity implements
             toast.show();
             return;
         }
+        // get the movie title for a friendly message
         Cursor c = getContentResolver().query(MovieEntry.buildMovieUriWithId(movieId),
                 COLUMN_MOVIE_PROJECTION, null, null, null);
         if (c == null) return;
@@ -180,8 +208,11 @@ public class DetailActivity extends AppCompatActivity implements
 
     @Override
     public Loader<Utils.Boolean1String> onCreateLoader(int id, final Bundle args) {
+        // multipurpose AsyncTaskLoader for Videos as well as Reviews
         switch(id) {
             case MOVIE_DB_DETAIL_REVIEW_LOADER:
+                // similarly to the MainActivity, 'struct' type class for additional data
+                // referring to the review/video distinction
                 return new AsyncTaskLoader<Utils.Boolean1String>(this) {
                     @Override
                     protected void onStartLoading() {
@@ -250,8 +281,10 @@ public class DetailActivity extends AppCompatActivity implements
             if ((movieDetails == null) || (movieDetails.jsonString == null)) {
                 Log.i(TAG, "No Movie Details " + movieId);
             } else {
+                // data retrieved; save it to the database
                 JSONObject movieJ = new JSONObject(movieDetails.jsonString);
                 if (movieDetails.isVideo) {
+                    // video data saving
                     JSONArray videos = movieJ.getJSONArray("results");
                     len = videos.length();
                     if (len == 0) return;
@@ -268,6 +301,7 @@ public class DetailActivity extends AppCompatActivity implements
                     Log.i(TAG, "inserting video data");
                     getContentResolver().bulkInsert(VideoEntry.CONTENT_URI, values);
                 } else {
+                    // review data saving
                     JSONArray reviews = movieJ.getJSONArray("results");
                     len = reviews.length();
                     if (len == 0) return;
@@ -283,7 +317,9 @@ public class DetailActivity extends AppCompatActivity implements
                 }
             }
             if ((movieDetails == null) || (movieDetails.isVideo)) {
+                // null would be worthwhile retrieving from database even so
                 Log.i(TAG, "creating video adapter");
+                // let the adapter handle the actual retrieval of images
                 ListAdapter adapter = new ImageTrailerAdapter(DetailActivity.this, movieId);
                 Log.i(TAG, "retrieving adapter count");
                 final int adapterCount = adapter.getCount();
@@ -316,6 +352,7 @@ public class DetailActivity extends AppCompatActivity implements
                 Log.i(TAG, "videos retrieved");
             }
             if ((movieDetails == null) || (!movieDetails.isVideo)) {
+                // even when null, a retrieval from the database should be worthwhile
                 StringBuilder htmlReviews = new StringBuilder(getString(R.string.html_prefix));
                 Cursor c = getContentResolver().query(ReviewEntry.buildReviewUriWithId(movieId),
                         COLUMN_REVIEW_PROJECTION, null, null, null);
@@ -337,6 +374,7 @@ public class DetailActivity extends AppCompatActivity implements
                             .append(getString(R.string.html_end_paragraph));
 
                 }
+                c.close();
                 htmlReviews.append(getString(R.string.html_suffix));
                 Log.i(TAG, htmlReviews.toString());
                 mReviewView.loadData(htmlReviews.toString(),

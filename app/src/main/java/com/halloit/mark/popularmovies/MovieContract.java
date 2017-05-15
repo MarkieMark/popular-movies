@@ -12,12 +12,15 @@ import android.util.Log;
  */
 
 class MovieContract {
+    // retain all the database content in one file; at a mere 150 loc it's
+    // quite manageable
     static final String CONTENT_AUTHORITY = "com.halloit.mark.popularmovies";
     private static final Uri BASE_CONTENT_URI = Uri.parse("content://" + CONTENT_AUTHORITY);
     static final String PATH_MOVIES = "movies";
     static final String PATH_VIDEOS = "videos";
     static final String PATH_REVIEWS = "reviews";
 
+    // the movie table
     static class MovieEntry implements BaseColumns {
         static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()
                 .appendPath(PATH_MOVIES)
@@ -43,6 +46,8 @@ class MovieContract {
                     .build();
         }
     }
+
+    // the video table
     static class VideoEntry implements BaseColumns {
         static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()
                 .appendPath(PATH_VIDEOS)
@@ -60,6 +65,7 @@ class MovieContract {
         }
     }
 
+    // the review table
     static class ReviewEntry implements BaseColumns {
         static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()
                 .appendPath(PATH_REVIEWS)
@@ -74,6 +80,8 @@ class MovieContract {
                     .build();
         }
     }
+
+    // utility intermediary class for db handling
     class MovieDbHelper extends SQLiteOpenHelper {
         private static final String TAG = "MovieDbHelper";
         private static final String DATABASE_NAME = "popular_movies.db";

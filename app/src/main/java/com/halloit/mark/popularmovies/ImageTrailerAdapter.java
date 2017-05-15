@@ -77,7 +77,7 @@ class ImageTrailerAdapter extends BaseAdapter {
         LinearLayout imageLayout;
         TextView labelView;
         if (convertView == null) {
-            // not recycled, init some attributes
+            // create container to handle title
             imageLayout = new LinearLayout(context);
             imageView = new ImageView(context);
             labelView = new TextView(context);
@@ -94,6 +94,7 @@ class ImageTrailerAdapter extends BaseAdapter {
             labelView = (TextView) imageLayout.getChildAt(0);
             imageView = (ImageView) imageLayout.getChildAt(1);
         }
+        // main thread should try to quickly load the data
         Cursor c = context.getContentResolver()
                 .query(VideoEntry.buildVideoUriWithId(movieId),
                         COLUMN_PROJECTION,
@@ -109,6 +110,7 @@ class ImageTrailerAdapter extends BaseAdapter {
         String path = YOUTUBE_IMAGE_URL + c.getString(IND_COLUMN_VIDEO_KEY) + YOUTUBE_IMAGE_Q;
         Log.i(TAG, "picasso loading URL: " + path);
         Log.i(TAG, "type " + c.getString(IND_COLUMN_VIDEO_TYPE));
+        // then create side thread to retrieve the actual image content
         new ImageRetrieval(imageView, path, c.getLong(IND_COLUMN_VIDEO_ID)).start();
         labelView.setText(c.getString(IND_COLUMN_VIDEO_TITLE));
         c.close();
@@ -129,6 +131,7 @@ class ImageTrailerAdapter extends BaseAdapter {
         @Override
         public void run() {
             try {
+                // image content should hopefully be in the database
                 ContentResolver resolver = context.getContentResolver();
                 String selection = VideoEntry._ID + " = ? ";
                 String[] selectionArgs = {String.valueOf(videoId)};
@@ -170,6 +173,7 @@ class ImageTrailerAdapter extends BaseAdapter {
         }
 
         private void getNewImage() {
+            // load image from the internet in case not yet present in the database
             try {
                 URL imageUrl = new URL(path);
                 URLConnection uc = imageUrl.openConnection();
@@ -183,6 +187,7 @@ class ImageTrailerAdapter extends BaseAdapter {
                     buffer.write((byte) current);
                 }
                 final byte[] data = buffer.toByteArray();
+                // prioritize updating the UI from the main UI thread
                 Handler handler = new Handler(Looper.getMainLooper());
                 handler.post(new Runnable() {
                     public void run() {
@@ -190,6 +195,7 @@ class ImageTrailerAdapter extends BaseAdapter {
                                 data, 0, data.length));
                     }
                 });
+                // while that is waiting / happening, update the database
                 ContentValues values = new ContentValues();
                 values.put(VideoEntry.COLUMN_VIDEO_IMAGE, data);
                 String selection = VideoEntry._ID + " = ? ";

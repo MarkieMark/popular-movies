@@ -28,7 +28,7 @@
                 android:gravity="center_horizontal" />
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:id="@+id/ll_detail_content"
                 android:orientation="horizontal">
                 <ImageView
@@ -73,12 +73,12 @@
                         android:text=""
                         />
                 </LinearLayout>
+                <WebView
+                    android:layout_width="@dimen/description_width"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_detail_description"
+                    android:gravity="fill_horizontal"/>
             </LinearLayout>
-            <WebView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/tv_detail_description"
-                android:gravity="fill_horizontal"/>
             <TextView
                 android:id="@+id/tv_trailers"
                 android:layout_width="match_parent"
@@ -100,7 +100,7 @@
                     />
             </HorizontalScrollView>
             <WebView
-                android:layout_width="match_parent"
+                android:layout_width="@dimen/description_width"
                 android:layout_height="wrap_content"
                 android:id="@+id/wv_reviews"
                 android:gravity="fill_horizontal" />

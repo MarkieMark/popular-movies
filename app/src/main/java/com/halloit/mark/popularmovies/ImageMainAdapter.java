@@ -82,12 +82,21 @@ class ImageMainAdapter extends BaseAdapter {
         ImageView imageView = null;
         try {
             if (convertView == null) {
-                // not recycled, init some attributes
+                // create new ImageView
                 imageView = new ImageView(context);
-                imageView.setMinimumHeight(500);
-                imageView.setMaxWidth(175);
+                imageView.setMinimumHeight((int) context.getResources().getDimension(
+                        R.dimen.main_image_min_height));
+                imageView.setMaxWidth((int) context.getResources().getDimension(
+                        R.dimen.main_image_max_width));
                 imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                imageView.setPadding(6, 6, 8, 8);
+                imageView.setPadding((int) context.getResources().getDimension(
+                        R.dimen.main_image_horizontal_padding),
+                        (int) context.getResources().getDimension(
+                                R.dimen.main_image_horizontal_padding),
+                        (int) context.getResources().getDimension(
+                                R.dimen.main_image_vertical_padding),
+                        (int) context.getResources().getDimension(
+                                R.dimen.main_image_vertical_padding));
             } else {
                 imageView = (ImageView) convertView;
             }
@@ -95,6 +104,7 @@ class ImageMainAdapter extends BaseAdapter {
             String path = "no path";
             Long movieId = -1L;
             if (isFav) {
+                // should be immediate retrieval of data from database
                 Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
                         MovieEntry.COLUMN_FAVORITE + " = 1 ", null, MovieEntry._ID);
                 if (c != null) {
@@ -104,6 +114,7 @@ class ImageMainAdapter extends BaseAdapter {
                     c.close();
                 }
             } else {
+                // should be quick retrieval of data from database
                 String[] selectionArgs = {String.valueOf(position + 1)};
                 String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
                 if (!isPop) selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
@@ -124,6 +135,7 @@ class ImageMainAdapter extends BaseAdapter {
             }
             imageView.setTag(String.valueOf(movieId));
             Log.i(TAG, "loading Image; URL " + path);
+            // defer loading of actual image in a side thread
             new ImageRetrieval(imageView, path, movieId).start();
         } catch (Exception E) {
             E.printStackTrace();
@@ -144,6 +156,7 @@ class ImageMainAdapter extends BaseAdapter {
         @Override
         public void run() {
             try {
+                // initially try to retrieve image content from database
                 ContentResolver resolver = context.getContentResolver();
                 Cursor c = resolver.query(MovieEntry.buildMovieUriWithId(movieId),
                         COLUMN_PROJECTION, null, null, null);
@@ -162,6 +175,7 @@ class ImageMainAdapter extends BaseAdapter {
                         getNewImage();
                         return;
                     } else {
+                        // need to update view from the main UI thread
                         Handler handler = new Handler(Looper.getMainLooper());
                         handler.post(new Runnable() {
                             public void run() {
@@ -183,6 +197,7 @@ class ImageMainAdapter extends BaseAdapter {
         }
 
         private void getNewImage() {
+            // in case of need to load image from the internet
             try {
                 URL imageUrl = new URL(path);
                 URLConnection uc = imageUrl.openConnection();
@@ -196,6 +211,7 @@ class ImageMainAdapter extends BaseAdapter {
                     buffer.write((byte) current);
                 }
                 final byte[] data = buffer.toByteArray();
+                // enqueue UI update as a priority
                 Handler handler = new Handler(Looper.getMainLooper());
                 handler.post(new Runnable() {
                     public void run() {
@@ -203,6 +219,7 @@ class ImageMainAdapter extends BaseAdapter {
                                 data, 0, data.length));
                     }
                 });
+                // update database while that is queueing
                 ContentValues values = new ContentValues();
                 values.put(MovieEntry.COLUMN_POSTER, data);
                 context.getContentResolver().update(MovieEntry.buildMovieUriWithId(movieId),

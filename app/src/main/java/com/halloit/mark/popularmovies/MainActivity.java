@@ -52,14 +52,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        // The only preference that needs monitoring actively is the length limit
         if (getString(R.string.pref_number_key).equals(key)) {
             lengthLimit = Integer.valueOf(sharedPreferences.getString(key,
                     getString(R.string.pref_number_default)));
         }
     }
 
+    // The AsyncTaskLoader retrieves data from the internet then
+    // handles database data retrieval / updating too
     @Override
     public Loader<Utils.BooleanString> onCreateLoader(int id, final Bundle args) {
+        // save isFav / isPop / offset values for transmission
         final boolean isFav = args.getBoolean(KEY_MOVIE_LIST_IS_FAVORITE);
         final boolean isPop = args.getBoolean(KEY_MOVIE_LIST_IS_POPULAR);
         final int offset = args.getInt(KEY_OFFSET);
@@ -71,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             @Override
             public Utils.BooleanString loadInBackground() {
+                // simplest method of appending data is the Java equivalent of a struct :-)
                 Utils.BooleanString ret = new Utils().new BooleanString(isFav, isPop, offset);
                 if ((isFav) || (! Utils.isInternetAvailable())) {
                     return ret;
@@ -98,6 +103,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onLoadFinished(Loader<Utils.BooleanString> loader, Utils.BooleanString moviesData) {
         boolean isFav = moviesData.isFav;
         boolean isPop = moviesData.isPop;
+        // Favorites page shouldn't need the internet retrieval
         if (isFav) {
             Cursor c = getContentResolver().query(MovieEntry.CONTENT_URI,
                     null, MovieEntry.COLUMN_FAVORITE + " = 1 ", null, null);
@@ -116,6 +122,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             return;
         }
         if (moviesData.jsonString == null) {
+            // no fresh data; check for presence of db data
             Cursor c;
             String selectCol;
             if (isPop) {
@@ -129,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (c.getCount() < 1) {
                     noDbData();
                 } else {
+                    // let the image adapter handle the actual retrieval of images from the db
                     mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
@@ -139,8 +147,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             noDbData();
             return;
         }
+        // there is new data from the internet
         Log.i(TAG, moviesData.jsonString);
         try {
+            // parse then store it in the database
             JSONObject moviesJ = new JSONObject(moviesData.jsonString);
             JSONArray results = moviesJ.getJSONArray("results");
             int len = results.length();
@@ -182,6 +192,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
             Uri uri = MovieEntry.CONTENT_URI;
             getContentResolver().bulkInsert(uri, values);
+            // then let the image adapter handle retrieving it from the database
             mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
             mProgressBar.setVisibility(View.INVISIBLE);
             mGridView.setVisibility(View.VISIBLE);
@@ -193,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onLoaderReset(Loader<Utils.BooleanString> loader) {
-
+        // not implemented
     }
 
     @Override
@@ -211,7 +222,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 getString(R.string.pref_number_default)));
         Log.i(TAG, "loading movies data");
         loadMoviesData(displayType, 0);
-
+        // include themoviedb movie id as the identifier that accompanies the images
         mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v,
                                     int position, long id) {
@@ -224,6 +235,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        // create spinner for view type
         getMenuInflater().inflate(R.menu.main, menu);
         Spinner spinner = (Spinner) MenuItemCompat.getActionView(
                 menu.findItem(R.id.menu_spinner));
@@ -233,6 +245,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
         spinner.setOnItemSelectedListener(this);
+        // check whether we should remember the spinner selection
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         if (sharedPreferences.getBoolean(getString(R.string.pref_remember_type_key),
                 getResources().getBoolean(R.bool.pref_remember_type_default))) {
@@ -245,6 +258,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+        // relevant to the spinner; when we need to remember its setting, remember it
+        // as a preference
         ((TextView) parent.getChildAt(0)).setTextColor(Color.WHITE);
         displayType = DisplayType.values()[pos];
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -256,6 +271,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             prefEditor.putInt(getString(R.string.pref_type), pos);
             prefEditor.apply();
         }
+        // then refresh the view
         loadMoviesData(displayType, 0);
     }
 
@@ -264,12 +280,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     private void loadMoviesData(DisplayType type, int offset) {
-        if (offset == 0) {
+        if (offset == 0) { // initial loading
             mGridView.setVisibility(View.INVISIBLE);
             mErrorView.setVisibility(View.INVISIBLE);
             mProgressBar.setVisibility(View.VISIBLE);
         }
         Bundle bundle = new Bundle();
+        // set accompanying data
         bundle.putBoolean(KEY_MOVIE_LIST_IS_FAVORITE, type == DisplayType.FAVORITES);
         bundle.putBoolean(KEY_MOVIE_LIST_IS_POPULAR, type == DisplayType.POPULAR);
         bundle.putInt(KEY_OFFSET, offset);
@@ -313,6 +330,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        // check for launch of settings activity
         int id = item.getItemId();
         if (id == R.id.action_settings) {
             Intent startSettingsActivity = new Intent(this, SettingsActivity.class);

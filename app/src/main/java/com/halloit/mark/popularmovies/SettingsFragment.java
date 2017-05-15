@@ -74,6 +74,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
+        // impose some constraint upon the length limit parameter
         String newString = ((String) newValue).trim();
         Integer newVal = 40;
         if (newString.equals("")) newString = "40";
