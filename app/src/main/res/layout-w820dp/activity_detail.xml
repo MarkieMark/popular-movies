@@ -32,32 +32,38 @@
                 android:id="@+id/ll_detail_content"
                 android:orientation="horizontal">
                 <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="@dimen/detail_image_width"
+                    android:layout_height="@dimen/detail_image_height"
                     android:id="@+id/dv_image"
                     android:contentDescription="@string/poster_image_alt"
                     android:scaleType="fitCenter"
                     android:layout_gravity="start"/>
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="@dimen/detail_middle_column_width"
                     android:layout_height="match_parent"
                     android:id="@+id/ll_detail_detail"
                     android:orientation="vertical"
-                    android:layout_gravity="center">
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginLeft="@dimen/favorite_horizontal_shift"
+                    android:layout_marginStart="@dimen/favorite_horizontal_shift">
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:id="@+id/tv_detail_date"
                         android:layout_gravity="center_horizontal"
                         android:textSize="@dimen/text_size_detail_large"
-                        android:paddingTop="@dimen/detail_small_elements_padding" />
+                        android:paddingTop="@dimen/detail_small_elements_padding"
+                        android:layout_marginStart="@dimen/detail_large_element_padding"
+                        android:layout_marginLeft="@dimen/detail_large_element_padding"/>
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:id="@+id/tv_detail_score"
                         android:layout_gravity="center_horizontal"
                         android:textSize="@dimen/text_size_detail_medium"
-                        android:paddingTop="@dimen/detail_small_elements_padding"/>
+                        android:paddingTop="@dimen/detail_small_elements_padding"
+                        android:layout_marginStart="@dimen/detail_large_element_padding"
+                        android:layout_marginLeft="@dimen/detail_large_element_padding"/>
                     <CheckBox
                         android:layout_width="@dimen/favorite_image_dimension"
                         android:layout_height="@dimen/favorite_image_dimension"

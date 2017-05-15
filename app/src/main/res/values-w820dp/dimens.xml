@@ -4,4 +4,7 @@
          would include 7" and 10" devices in landscape (~960dp and ~1280dp respectively). -->
     <dimen name="activity_horizontal_margin">64dp</dimen>
     <dimen name="description_width">450dp</dimen>
+    <dimen name="detail_middle_column_width">125dp</dimen>
+    <dimen name="detail_image_width">240dp</dimen>
+    <dimen name="detail_image_height">360dp</dimen>
 </resources>
