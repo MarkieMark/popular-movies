@@ -36,6 +36,7 @@ class MovieContract {
         static final String COLUMN_OVERVIEW = "overview";
         static final String COLUMN_IMAGE_FULL_PATH = "image_full_path";
         static final String COLUMN_FAVORITE = "favorite";
+        static final String COLUMN_POSTER = "poster";
         static Uri buildMovieUriWithId(long id) {
             return CONTENT_URI.buildUpon()
                     .appendPath(Long.toString(id))
@@ -51,6 +52,7 @@ class MovieContract {
         static final String COLUMN_VIDEO_KEY = "video_key";
         static final String COLUMN_VIDEO_TYPE = "video_type";
         static final String COLUMN_VIDEO_TITLE = "video_title";
+        static final String COLUMN_VIDEO_IMAGE = "video_image";
         static Uri buildVideoUriWithId(long id) {
             return CONTENT_URI.buildUpon()
                     .appendPath(Long.toString(id))
@@ -92,6 +94,7 @@ class MovieContract {
                 MovieEntry.COLUMN_OVERVIEW + " TEXT, " +
                 MovieEntry.COLUMN_IMAGE_FULL_PATH + " TEXT, " +
                 MovieEntry.COLUMN_FAVORITE + " INTEGER DEFAULT 0, " +
+                MovieEntry.COLUMN_POSTER + " BLOB DEFAULT NULL, " +
                 "UNIQUE ( " + MovieEntry.COLUMN_MOVIE_ID + " ) ON CONFLICT REPLACE ) ;";
         private final String SQL_CREATE_VIDEO_TABLE = "CREATE TABLE " +
                 VideoEntry.TABLE_NAME + " ( " +
@@ -99,7 +102,8 @@ class MovieContract {
                 VideoEntry.COLUMN_VIDEO_MOVIE_ID + " INTEGER NOT NULL, " +
                 VideoEntry.COLUMN_VIDEO_KEY + " TEXT NOT NULL, " +
                 VideoEntry.COLUMN_VIDEO_TITLE + " TEXT, " +
-                VideoEntry.COLUMN_VIDEO_TYPE + " TEXT ) ;";
+                VideoEntry.COLUMN_VIDEO_TYPE + " TEXT, " +
+                VideoEntry.COLUMN_VIDEO_IMAGE + " BLOB DEFAULT NULL ) ;";
         private final String SQL_CREATE_REVIEW_TABLE = "CREATE TABLE " +
                 ReviewEntry.TABLE_NAME + " ( " +
                 ReviewEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +

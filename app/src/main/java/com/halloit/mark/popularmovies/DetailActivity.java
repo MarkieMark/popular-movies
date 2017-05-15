@@ -24,7 +24,6 @@ import android.widget.Toast;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URL;
@@ -32,6 +31,7 @@ import java.net.URL;
 import static com.halloit.mark.popularmovies.BuildConfig.*;
 import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 import com.halloit.mark.popularmovies.MovieContract.VideoEntry;
+import com.halloit.mark.popularmovies.MovieContract.ReviewEntry;
 
 public class DetailActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Utils.Boolean1String> {
@@ -40,11 +40,17 @@ public class DetailActivity extends AppCompatActivity implements
     private WebView mReviewView;
     private Long movieId;
     private CheckBox mFavoriteButton;
+    private TextView mErrorView;
+    private ProgressBar mProgressBar;
+    private LinearLayout mLinearLayoutMain;
 
-    private static final String[] COLUMN_PROJECTION = {MovieEntry._ID, MovieEntry.COLUMN_MOVIE_ID,
+    private static final String[] COLUMN_MOVIE_PROJECTION = {MovieEntry._ID, MovieEntry.COLUMN_MOVIE_ID,
             MovieEntry.COLUMN_IMAGE_FULL_PATH, MovieEntry.COLUMN_TITLE,
             MovieEntry.COLUMN_RELEASE_DATE, MovieEntry.COLUMN_VOTE_AVERAGE,
             MovieEntry.COLUMN_OVERVIEW, MovieEntry.COLUMN_FAVORITE};
+    private static final String[] COLUMN_REVIEW_PROJECTION = {ReviewEntry._ID,
+            ReviewEntry.COLUMN_REVIEW_MOVIE_ID, ReviewEntry.COLUMN_REVIEW_AUTHOR,
+            ReviewEntry.COLUMN_REVIEW_CONTENT};
 //    private static final int IND_COLUMN__ID = 0;
 //    private static final int IND_COLUMN_MOVIE_ID = 1;
     private static final int IND_COLUMN_IMAGE_FULL_PATH = 2;
@@ -53,6 +59,11 @@ public class DetailActivity extends AppCompatActivity implements
     private static final int IND_COLUMN_VOTE_AVERAGE = 5;
     private static final int IND_COLUMN_OVERVIEW = 6;
     private static final int IND_COLUMN_FAVORITE = 7;
+
+//    private static final int IND_REVIEW_COLUMN__ID = 0;
+//    private static final int IND_REVIEW_COLUMN_MOVIE_ID = 1;
+    private static final int IND_REVIEW_COLUMN_AUTHOR = 2;
+    private static final int IND_REVIEW_COLUMN_CONTENT = 3;
 
     private static final String KEY_MOVIE_ID = "Movie_ID";
     private static final int MOVIE_DB_DETAIL_VIDEO_LOADER = 711;
@@ -64,9 +75,9 @@ public class DetailActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
         ImageView mImageView = (ImageView) findViewById(R.id.dv_image);
-        ProgressBar mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_detail);
-        TextView mErrorView = (TextView) findViewById(R.id.tv_error_detail);
-        LinearLayout mLinearLayoutMain = (LinearLayout) findViewById(R.id.ll_detail_main);
+        mProgressBar = (ProgressBar) findViewById(R.id.pb_loading_detail);
+        mLinearLayoutMain = (LinearLayout) findViewById(R.id.ll_detail_main);
+        mErrorView = (TextView) findViewById(R.id.tv_error_detail);
         TextView mTitleView = (TextView) findViewById(R.id.tv_detail_title);
         TextView mDateView = (TextView) findViewById(R.id.tv_detail_date);
         TextView mScoreView = (TextView) findViewById(R.id.tv_detail_score);
@@ -77,14 +88,6 @@ public class DetailActivity extends AppCompatActivity implements
         Intent intent = getIntent();
         getSupportLoaderManager().initLoader(MOVIE_DB_DETAIL_VIDEO_LOADER, null, this);
         if (intent.hasExtra(Intent.EXTRA_TEXT)) {
-            if (! Utils.isNetworkConnected(this)) {
-                mErrorView.setText(R.string.no_network);
-                mErrorView.setVisibility(View.VISIBLE);
-//                mImageView.setVisibility(View.INVISIBLE);
-                mLinearLayoutMain.setVisibility(View.INVISIBLE);
-                mProgressBar.setVisibility(View.INVISIBLE);
-                return;
-            }
             String content = intent.getStringExtra(Intent.EXTRA_TEXT);
             movieId = Long.valueOf(content);
             Log.i(TAG, "intent content: " + content);
@@ -92,10 +95,11 @@ public class DetailActivity extends AppCompatActivity implements
             mImageView.setMinimumHeight(500);
             mImageView.setMinimumWidth(325);
             Cursor c = getContentResolver().query(MovieEntry.buildMovieUriWithId(movieId),
-                    COLUMN_PROJECTION, null, null, null);
-            if (c == null) return;
+                    COLUMN_MOVIE_PROJECTION, null, null, null);
+            if (c == null) { noData(); return; }
             if (c.getCount() < 1) {
                 c.close();
+                noData();
                 return;
             }
             c.moveToFirst();
@@ -146,7 +150,7 @@ public class DetailActivity extends AppCompatActivity implements
             return;
         }
         Cursor c = getContentResolver().query(MovieEntry.buildMovieUriWithId(movieId),
-                COLUMN_PROJECTION, null, null, null);
+                COLUMN_MOVIE_PROJECTION, null, null, null);
         if (c == null) return;
         if (c.getCount() < 1) {
             c.close();
@@ -160,6 +164,18 @@ public class DetailActivity extends AppCompatActivity implements
         if( v != null) v.setGravity(Gravity.CENTER);
         toast.show();
         c.close();
+    }
+
+    private void noData() {
+        if (! Utils.isNetworkConnected(this)) {
+            mErrorView.setText(R.string.no_network);
+        } else {
+            mErrorView.setText(R.string.no_data);
+        }
+        mErrorView.setVisibility(View.VISIBLE);
+//        mImageView.setVisibility(View.INVISIBLE);
+        mLinearLayoutMain.setVisibility(View.INVISIBLE);
+        mProgressBar.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -229,29 +245,44 @@ public class DetailActivity extends AppCompatActivity implements
     @Override
     public void onLoadFinished(Loader<Utils.Boolean1String> loader,
                                Utils.Boolean1String movieDetails) {
-        if ((movieDetails == null) || (movieDetails.jsonString == null)) {
-            Log.i(TAG, "No Movie Details " + movieId);
-            return;
-        }
         int len;
         try {
-            JSONObject movieJ = new JSONObject(movieDetails.jsonString);
-            if (movieDetails.isVideo) {
-                JSONArray videos = movieJ.getJSONArray("results");
-                len = videos.length();
-                if (len == 0) return;
-                ContentValues[] values = new ContentValues[len];
-                for (int i = 0; i < len; i++) {
-                    JSONObject videoJ = videos.getJSONObject(i);
-                    Log.i(TAG, videoJ.toString(2));
-                    values[i] = new ContentValues();
-                    values[i].put(VideoEntry.COLUMN_VIDEO_MOVIE_ID, movieId);
-                    values[i].put(VideoEntry.COLUMN_VIDEO_TITLE, videoJ.getString("name"));
-                    values[i].put(VideoEntry.COLUMN_VIDEO_KEY, videoJ.getString("key"));
-                    values[i].put(VideoEntry.COLUMN_VIDEO_TYPE, videoJ.getString("type"));
+            if ((movieDetails == null) || (movieDetails.jsonString == null)) {
+                Log.i(TAG, "No Movie Details " + movieId);
+            } else {
+                JSONObject movieJ = new JSONObject(movieDetails.jsonString);
+                if (movieDetails.isVideo) {
+                    JSONArray videos = movieJ.getJSONArray("results");
+                    len = videos.length();
+                    if (len == 0) return;
+                    ContentValues[] values = new ContentValues[len];
+                    for (int i = 0; i < len; i++) {
+                        JSONObject videoJ = videos.getJSONObject(i);
+                        Log.i(TAG, videoJ.toString(2));
+                        values[i] = new ContentValues();
+                        values[i].put(VideoEntry.COLUMN_VIDEO_MOVIE_ID, movieId);
+                        values[i].put(VideoEntry.COLUMN_VIDEO_TITLE, videoJ.getString("name"));
+                        values[i].put(VideoEntry.COLUMN_VIDEO_KEY, videoJ.getString("key"));
+                        values[i].put(VideoEntry.COLUMN_VIDEO_TYPE, videoJ.getString("type"));
+                    }
+                    Log.i(TAG, "inserting video data");
+                    getContentResolver().bulkInsert(VideoEntry.CONTENT_URI, values);
+                } else {
+                    JSONArray reviews = movieJ.getJSONArray("results");
+                    len = reviews.length();
+                    if (len == 0) return;
+                    ContentValues[] values = new ContentValues[len];
+                    for (int i = 0; i < len; i++) {
+                        JSONObject reviewJ = reviews.getJSONObject(i);
+                        values[i] = new ContentValues();
+                        values[i].put(ReviewEntry.COLUMN_REVIEW_MOVIE_ID, movieId);
+                        values[i].put(ReviewEntry.COLUMN_REVIEW_AUTHOR, reviewJ.getString("author"));
+                        values[i].put(ReviewEntry.COLUMN_REVIEW_CONTENT, reviewJ.getString("content"));
+                    }
+                    getContentResolver().bulkInsert(ReviewEntry.CONTENT_URI, values);
                 }
-                Log.i(TAG, "inserting video data");
-                getContentResolver().bulkInsert(VideoEntry.CONTENT_URI, values);
+            }
+            if ((movieDetails == null) || (movieDetails.isVideo)) {
                 Log.i(TAG, "creating video adapter");
                 ListAdapter adapter = new ImageTrailerAdapter(DetailActivity.this, movieId);
                 Log.i(TAG, "retrieving adapter count");
@@ -283,26 +314,26 @@ public class DetailActivity extends AppCompatActivity implements
                     });
                 }
                 Log.i(TAG, "videos retrieved");
-            } else {
+            }
+            if ((movieDetails == null) || (!movieDetails.isVideo)) {
                 StringBuilder htmlReviews = new StringBuilder(getString(R.string.html_prefix));
-                JSONArray reviews = movieJ.getJSONArray("results");
-                len = reviews.length();
-                if (len == 0) return;
-                for (int i = 0; i < len; i++) {
-                    JSONObject reviewJ = reviews.getJSONObject(i);
-                    htmlReviews.append(getString(R.string.html_new_paragraph));
-                    if (i == 0) {
-                        htmlReviews.append(getString(R.string.html_bold_ul_start))
+                Cursor c = getContentResolver().query(ReviewEntry.buildReviewUriWithId(movieId),
+                        COLUMN_REVIEW_PROJECTION, null, null, null);
+                if (c == null) return;
+                if (c.getCount() > 0) {
+                    htmlReviews.append(getString(R.string.html_new_paragraph))
+                                .append(getString(R.string.html_bold_ul_start))
                                 .append(getString(R.string.reviews))
                                 .append(getString(R.string.html_bold_ul_stop))
-                                .append(getString(R.string.html_end_paragraph))
-                                .append(getString(R.string.html_new_paragraph));
-                    }
-                    htmlReviews.append(getString(R.string.html_bold_start))
-                            .append(reviewJ.getString("author"))
+                                .append(getString(R.string.html_end_paragraph));
+                }
+                while(c.moveToNext()) {
+                    htmlReviews.append(getString(R.string.html_new_paragraph))
+                            .append(getString(R.string.html_bold_start))
+                            .append(c.getString(IND_REVIEW_COLUMN_AUTHOR))
                             .append(getString(R.string.html_bold_stop))
                             .append(getString(R.string.html_br))
-                            .append(reviewJ.getString("content"))
+                            .append(c.getString(IND_REVIEW_COLUMN_CONTENT))
                             .append(getString(R.string.html_end_paragraph));
 
                 }
@@ -311,7 +342,7 @@ public class DetailActivity extends AppCompatActivity implements
                 mReviewView.loadData(htmlReviews.toString(),
                         "text/html; charset=utf-8", "utf-8");
             }
-        } catch (JSONException e) {
+        } catch (Exception e) {
             Log.i(TAG, e.toString());
             e.printStackTrace();
         }

@@ -107,10 +107,27 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             return;
         }
         if (moviesData.jsonString == null) {
-            mErrorView.setText(R.string.no_connection);
-            mErrorView.setVisibility(View.VISIBLE);
-            mGridView.setVisibility(View.INVISIBLE);
-            mProgressBar.setVisibility(View.INVISIBLE);
+            Cursor c;
+            String selectCol;
+            if (isPop) {
+                selectCol = MovieEntry.COLUMN_POP_PRIORITY;
+            } else {
+                selectCol = MovieEntry.COLUMN_TR_PRIORITY;
+            }
+            c = getContentResolver().query(MovieEntry.CONTENT_URI,
+                    null, selectCol + " > 0 ", null, null);
+            if (c != null) {
+                if (c.getCount() < 1) {
+                    noDbData();
+                } else {
+                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
+                    mProgressBar.setVisibility(View.INVISIBLE);
+                    mGridView.setVisibility(View.VISIBLE);
+                }
+                c.close();
+                return;
+            }
+            noDbData();
             return;
         }
         Log.i(TAG, moviesData.jsonString);
