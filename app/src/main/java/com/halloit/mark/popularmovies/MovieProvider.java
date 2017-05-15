@@ -9,9 +9,12 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import com.halloit.mark.popularmovies.MovieContract.MovieDbHelper;
 import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
+import com.halloit.mark.popularmovies.MovieContract.VideoEntry;
+import com.halloit.mark.popularmovies.MovieContract.ReviewEntry;
 
 
 /**
@@ -20,8 +23,14 @@ import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 
 public class MovieProvider extends ContentProvider {
 
+    static final String TAG = "MovieProvider";
+
     static final int CODE_MOVIES = 100;
     static final int CODE_MOVIE_WITH_ID = 102;
+    static final int CODE_VIDEOS = 200;
+    static final int CODE_VIDEOS_WITH_ID = 201;
+    static final int CODE_REVIEWS = 300;
+    static final int CODE_REVIEWS_WITH_ID = 301;
 
     private static final UriMatcher sUriMatcher = buildUriMatcher();
     private MovieDbHelper mOpenHelper;
@@ -37,6 +46,12 @@ public class MovieProvider extends ContentProvider {
         ret.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_MOVIES, CODE_MOVIES);
         ret.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_MOVIES + "/#",
                 CODE_MOVIE_WITH_ID);
+        ret.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_VIDEOS, CODE_VIDEOS);
+        ret.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_VIDEOS + "/#",
+                CODE_VIDEOS_WITH_ID);
+        ret.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_REVIEWS, CODE_REVIEWS);
+        ret.addURI(MovieContract.CONTENT_AUTHORITY, MovieContract.PATH_REVIEWS + "/#",
+                CODE_REVIEWS_WITH_ID);
         return ret;
     }
 
@@ -67,13 +82,27 @@ public class MovieProvider extends ContentProvider {
                                 null);
                         if (c != null) {
                             if (c.getCount() > 0) {
+                                if (c.getCount() > 1) { Log.i(TAG, "Large count! " +
+                                        c.getCount() + " for Movie id " + movieId);}
                                 c.moveToFirst();
                                 if (isPop) {
                                     value.put(MovieEntry.COLUMN_TR_PRIORITY,
                                             c.getInt(IND_PRIORITY_TR));
+                                    if (c.getInt(IND_PRIORITY_POP) !=
+                                            value.getAsInteger(MovieEntry.COLUMN_POP_PRIORITY)) {
+                                        Log.i(TAG, "Overwriting popular priority from " +
+                                                c.getInt(IND_PRIORITY_POP) + " to " +
+                                                value.getAsInteger(MovieEntry.COLUMN_POP_PRIORITY));
+                                    }
                                 } else {
                                     value.put(MovieEntry.COLUMN_POP_PRIORITY,
                                             c.getInt(IND_PRIORITY_POP));
+                                    if (c.getInt(IND_PRIORITY_TR) !=
+                                            value.getAsInteger(MovieEntry.COLUMN_TR_PRIORITY)) {
+                                        Log.i(TAG, "Overwriting popular priority from " +
+                                                c.getInt(IND_PRIORITY_TR) + " to " +
+                                                value.getAsInteger(MovieEntry.COLUMN_TR_PRIORITY));
+                                    }
                                 }
                                 value.put(MovieEntry.COLUMN_FAVORITE,
                                         c.getInt(IND_FAVORITE));
@@ -81,6 +110,34 @@ public class MovieProvider extends ContentProvider {
                             }
                         }
                         long id = db.insert(MovieEntry.TABLE_NAME, null, value);
+                        if (id != -1) {
+                            rowsInserted++;
+                        }
+                    }
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+                break;
+            case CODE_VIDEOS:
+                db.beginTransaction();
+                try {
+                    for (ContentValues value : values) {
+                        long id = db.insert(VideoEntry.TABLE_NAME, null, value);
+                        if (id != -1) {
+                            rowsInserted++;
+                        }
+                    }
+                    db.setTransactionSuccessful();
+                } finally {
+                    db.endTransaction();
+                }
+                break;
+            case CODE_REVIEWS:
+                db.beginTransaction();
+                try {
+                    for (ContentValues value : values) {
+                        long id = db.insert(ReviewEntry.TABLE_NAME, null, value);
                         if (id != -1) {
                             rowsInserted++;
                         }
@@ -113,6 +170,20 @@ public class MovieProvider extends ContentProvider {
                 selectionArgs = new String[]{uri.getLastPathSegment()};
             case CODE_MOVIES:
                 ret = db.query(MovieEntry.TABLE_NAME, projection, selection,
+                        selectionArgs, null, null, sortOrder);
+                break;
+            case CODE_VIDEOS_WITH_ID:
+                selection = VideoEntry.COLUMN_VIDEO_MOVIE_ID + " = ? ";
+                selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_VIDEOS:
+                ret = db.query(VideoEntry.TABLE_NAME, projection, selection,
+                        selectionArgs, null, null, sortOrder);
+                break;
+            case CODE_REVIEWS_WITH_ID:
+                selection = ReviewEntry.COLUMN_REVIEW_MOVIE_ID + " = ? ";
+                selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_REVIEWS:
+                ret = db.query(ReviewEntry.TABLE_NAME, projection, selection,
                         selectionArgs, null, null, sortOrder);
                 break;
             default:
@@ -148,6 +219,24 @@ public class MovieProvider extends ContentProvider {
                         selection,
                         selectionArgs);
                 break;
+            case CODE_VIDEOS_WITH_ID:
+                selection = VideoEntry.COLUMN_VIDEO_MOVIE_ID + " = ? ";
+                selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_VIDEOS:
+                numRowsDeleted = db.delete(
+                        VideoEntry.TABLE_NAME,
+                        selection,
+                        selectionArgs);
+                break;
+            case CODE_REVIEWS_WITH_ID:
+                selection = ReviewEntry.COLUMN_REVIEW_MOVIE_ID + " = ? ";
+                selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_REVIEWS:
+                numRowsDeleted = db.delete(
+                        ReviewEntry.TABLE_NAME,
+                        selection,
+                        selectionArgs);
+                break;
             default:
                 throw new UnsupportedOperationException("Unknown URI: " + uri);
         }
@@ -169,6 +258,20 @@ public class MovieProvider extends ContentProvider {
                 selectionArgs = new String[]{uri.getLastPathSegment()};
             case CODE_MOVIES:
                 numberOfRowsAffected = db.update(MovieEntry.TABLE_NAME, values,
+                        selection, selectionArgs);
+                break;
+            case CODE_VIDEOS_WITH_ID:
+                selection = VideoEntry.COLUMN_VIDEO_MOVIE_ID + " = ? ";
+                selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_VIDEOS:
+                numberOfRowsAffected = db.update(VideoEntry.TABLE_NAME, values,
+                        selection, selectionArgs);
+                break;
+            case CODE_REVIEWS_WITH_ID:
+                selection = ReviewEntry.COLUMN_REVIEW_MOVIE_ID + " = ? ";
+                selectionArgs = new String[]{uri.getLastPathSegment()};
+            case CODE_REVIEWS:
+                numberOfRowsAffected = db.update(ReviewEntry.TABLE_NAME, values,
                         selection, selectionArgs);
                 break;
             default:

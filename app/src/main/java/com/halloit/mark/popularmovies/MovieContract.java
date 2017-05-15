@@ -15,6 +15,8 @@ class MovieContract {
     static final String CONTENT_AUTHORITY = "com.halloit.mark.popularmovies";
     private static final Uri BASE_CONTENT_URI = Uri.parse("content://" + CONTENT_AUTHORITY);
     static final String PATH_MOVIES = "movies";
+    static final String PATH_VIDEOS = "videos";
+    static final String PATH_REVIEWS = "reviews";
 
     static class MovieEntry implements BaseColumns {
         static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()
@@ -22,7 +24,7 @@ class MovieContract {
                 .build();
         static final String TABLE_NAME = "movies";
         static final String COLUMN_TR_PRIORITY = "top_rated_priority";
-        static final String COLUMN_POP_PRIORITY = "popular_priotity";
+        static final String COLUMN_POP_PRIORITY = "popular_priority";
         static final String COLUMN_MOVIE_ID = "movie_id";
         static final String COLUMN_TITLE = "title";
         static final String COLUMN_POSTER_PATH = "poster_path";
@@ -40,7 +42,36 @@ class MovieContract {
                     .build();
         }
     }
+    static class VideoEntry implements BaseColumns {
+        static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()
+                .appendPath(PATH_VIDEOS)
+                .build();
+        static final String TABLE_NAME = "videos";
+        static final String COLUMN_VIDEO_MOVIE_ID = "video_movie_id";
+        static final String COLUMN_VIDEO_KEY = "video_key";
+        static final String COLUMN_VIDEO_TYPE = "video_type";
+        static final String COLUMN_VIDEO_TITLE = "video_title";
+        static Uri buildVideoUriWithId(long id) {
+            return CONTENT_URI.buildUpon()
+                    .appendPath(Long.toString(id))
+                    .build();
+        }
+    }
 
+    static class ReviewEntry implements BaseColumns {
+        static final Uri CONTENT_URI = BASE_CONTENT_URI.buildUpon()
+                .appendPath(PATH_REVIEWS)
+                .build();
+        static final String TABLE_NAME = "reviews";
+        static final String COLUMN_REVIEW_MOVIE_ID = "review_movie_id";
+        static final String COLUMN_REVIEW_AUTHOR = "review_author";
+        static final String COLUMN_REVIEW_CONTENT = "review_content";
+        static Uri buildReviewUriWithId(long id) {
+            return CONTENT_URI.buildUpon()
+                    .appendPath(Long.toString(id))
+                    .build();
+        }
+    }
     class MovieDbHelper extends SQLiteOpenHelper {
         private static final String TAG = "MovieDbHelper";
         private static final String DATABASE_NAME = "popular_movies.db";
@@ -62,6 +93,19 @@ class MovieContract {
                 MovieEntry.COLUMN_IMAGE_FULL_PATH + " TEXT, " +
                 MovieEntry.COLUMN_FAVORITE + " INTEGER DEFAULT 0, " +
                 "UNIQUE ( " + MovieEntry.COLUMN_MOVIE_ID + " ) ON CONFLICT REPLACE ) ;";
+        private final String SQL_CREATE_VIDEO_TABLE = "CREATE TABLE " +
+                VideoEntry.TABLE_NAME + " ( " +
+                VideoEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                VideoEntry.COLUMN_VIDEO_MOVIE_ID + " INTEGER NOT NULL, " +
+                VideoEntry.COLUMN_VIDEO_KEY + " TEXT NOT NULL, " +
+                VideoEntry.COLUMN_VIDEO_TITLE + " TEXT, " +
+                VideoEntry.COLUMN_VIDEO_TYPE + " TEXT ) ;";
+        private final String SQL_CREATE_REVIEW_TABLE = "CREATE TABLE " +
+                ReviewEntry.TABLE_NAME + " ( " +
+                ReviewEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                ReviewEntry.COLUMN_REVIEW_MOVIE_ID + " INTEGER NOT NULL, " +
+                ReviewEntry.COLUMN_REVIEW_AUTHOR + " TEXT, " +
+                ReviewEntry.COLUMN_REVIEW_CONTENT + " TEXT ) ;";
 
         MovieDbHelper(Context c) {
             super(c, DATABASE_NAME, null, DATABASE_VERSION);
@@ -72,6 +116,8 @@ class MovieContract {
             Log.i(TAG, "OnCreate");
             try {
                 db.execSQL(SQL_CREATE_MOVIE_TABLE);
+                db.execSQL(SQL_CREATE_VIDEO_TABLE);
+                db.execSQL(SQL_CREATE_REVIEW_TABLE);
             } catch (Exception E) {
                 E.printStackTrace();
             }
@@ -82,6 +128,8 @@ class MovieContract {
             Log.i(TAG, "Database Upgrade from " + oldVersion + " to " + newVersion);
             try {
                 db.execSQL("DROP TABLE IF EXISTS " + MovieEntry.TABLE_NAME);
+                db.execSQL("DROP TABLE IF EXISTS " + VideoEntry.TABLE_NAME);
+                db.execSQL("DROP TABLE IF EXISTS " + ReviewEntry.TABLE_NAME);
                 onCreate(db);
             } catch (Exception E) {
                 E.printStackTrace();

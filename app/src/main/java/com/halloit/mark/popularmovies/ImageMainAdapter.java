@@ -22,7 +22,8 @@ class ImageMainAdapter extends BaseAdapter {
     private final Context context;
     private final boolean isPop, isFav;
     private static final String[] COLUMN_PROJECTION = {MovieEntry.COLUMN_MOVIE_ID,
-            MovieEntry.COLUMN_IMAGE_FULL_PATH};
+            MovieEntry.COLUMN_IMAGE_FULL_PATH/*, MovieEntry.COLUMN_POP_PRIORITY,
+            MovieEntry.COLUMN_TR_PRIORITY*/};
     private static final int IND_COLUMN_MOVIE_ID = 0;
     private static final int IND_COLUMN_IMAGE_FULL_PATH = 1;
 
@@ -48,7 +49,9 @@ class ImageMainAdapter extends BaseAdapter {
             ret = c.getCount();
             Log.i(TAG, "getCount(); isPop = " + isPop + ", isFav = " + isFav +
                     ", number of Entries " + ret);
-            c.close();
+/*            while (c.moveToNext()) Log.i(TAG, c.getString(IND_COLUMN_IMAGE_FULL_PATH) + " " +
+                    c.getLong(IND_COLUMN_MOVIE_ID) + " " + c.getInt(2) + " " + c.getInt(3));
+*/            c.close();
         }
         return ret;
     }
@@ -99,9 +102,9 @@ class ImageMainAdapter extends BaseAdapter {
                     c.moveToFirst();
                     path = c.getString(IND_COLUMN_IMAGE_FULL_PATH);
                     movieId = c.getLong(IND_COLUMN_MOVIE_ID);
-                }
+                } else { Log.i(TAG, "0 count from " + selectionCol + " = " + selectionArgs[0]);}
                 c.close();
-            }
+            } else { Log.i(TAG, "null from " + selectionCol + " = " + selectionArgs[0]);}
         }
         imageView.setTag(String.valueOf(movieId));
         Log.i(TAG, "picasso loading URL: " + path);

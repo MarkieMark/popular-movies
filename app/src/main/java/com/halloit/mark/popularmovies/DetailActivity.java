@@ -31,6 +31,7 @@ import java.net.URL;
 
 import static com.halloit.mark.popularmovies.BuildConfig.*;
 import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
+import com.halloit.mark.popularmovies.MovieContract.VideoEntry;
 
 public class DetailActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Utils.Boolean1String> {
@@ -84,7 +85,6 @@ public class DetailActivity extends AppCompatActivity implements
                 mProgressBar.setVisibility(View.INVISIBLE);
                 return;
             }
-            // TODO check for actual connection
             String content = intent.getStringExtra(Intent.EXTRA_TEXT);
             movieId = Long.valueOf(content);
             Log.i(TAG, "intent content: " + content);
@@ -239,24 +239,25 @@ public class DetailActivity extends AppCompatActivity implements
             if (movieDetails.isVideo) {
                 JSONArray videos = movieJ.getJSONArray("results");
                 len = videos.length();
-                Video[] theVideos = new Video[len];
+                if (len == 0) return;
+                ContentValues[] values = new ContentValues[len];
                 for (int i = 0; i < len; i++) {
                     JSONObject videoJ = videos.getJSONObject(i);
                     Log.i(TAG, videoJ.toString(2));
-                    Video v = new Video();
-                    v.setMovieId(movieId.toString());
-                    v.setName(videoJ.getString("name"));
-                    v.setUrlId(videoJ.getString("key"));
-                    v.setType(videoJ.getString("type"));
-                    Log.i(TAG, "adding video" + v);
-                    Log.i(TAG, "building jsonString");
-                    theVideos[i] = v;
-                    // TODO could be a recyclerView
+                    values[i] = new ContentValues();
+                    values[i].put(VideoEntry.COLUMN_VIDEO_MOVIE_ID, movieId);
+                    values[i].put(VideoEntry.COLUMN_VIDEO_TITLE, videoJ.getString("name"));
+                    values[i].put(VideoEntry.COLUMN_VIDEO_KEY, videoJ.getString("key"));
+                    values[i].put(VideoEntry.COLUMN_VIDEO_TYPE, videoJ.getString("type"));
                 }
-                Video.setVideos(theVideos);
-                ListAdapter adapter = new ImageTrailerAdapter(DetailActivity.this);
+                Log.i(TAG, "inserting video data");
+                getContentResolver().bulkInsert(VideoEntry.CONTENT_URI, values);
+                Log.i(TAG, "creating video adapter");
+                ListAdapter adapter = new ImageTrailerAdapter(DetailActivity.this, movieId);
+                Log.i(TAG, "retrieving adapter count");
                 final int adapterCount = adapter.getCount();
                 for (int i = 0; i < adapterCount; i++) {
+                    Log.i(TAG, "retrieving adapter view " + i);
                     View item = adapter.getView(i, null, null);
                     item.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -281,10 +282,12 @@ public class DetailActivity extends AppCompatActivity implements
                         }
                     });
                 }
+                Log.i(TAG, "videos retrieved");
             } else {
                 StringBuilder htmlReviews = new StringBuilder(getString(R.string.html_prefix));
                 JSONArray reviews = movieJ.getJSONArray("results");
                 len = reviews.length();
+                if (len == 0) return;
                 for (int i = 0; i < len; i++) {
                     JSONObject reviewJ = reviews.getJSONObject(i);
                     htmlReviews.append(getString(R.string.html_new_paragraph));
@@ -303,6 +306,7 @@ public class DetailActivity extends AppCompatActivity implements
                             .append(getString(R.string.html_end_paragraph));
 
                 }
+                htmlReviews.append(getString(R.string.html_suffix));
                 Log.i(TAG, htmlReviews.toString());
                 mReviewView.loadData(htmlReviews.toString(),
                         "text/html; charset=utf-8", "utf-8");
@@ -315,6 +319,5 @@ public class DetailActivity extends AppCompatActivity implements
 
     @Override
     public void onLoaderReset(Loader<Utils.Boolean1String> loader) {
-
     }
 }

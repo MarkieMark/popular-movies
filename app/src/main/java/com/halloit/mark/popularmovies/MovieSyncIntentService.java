@@ -34,9 +34,9 @@ class MovieSyncIntentService extends IntentService {
                 ContentValues[] topRatedValues = null;
                 ContentResolver resolver = c.getContentResolver();
                 // if ((topRatedValues != null) && (topRatedValues.length != 0)) {
-                // resolver.delete(MovieContract.topRatedMovieEntry.topRated_URI,
+                // resolver.delete(MovieContract.MovieEntry.topRated_URI,
                 // null, null);
-                // resolver.bulkInsert(MovieContract.topRatedMovieEntry.topRated_URI,
+                // resolver.bulkInsert(MovieContract.MovieEntry.topRated_URI,
                 // topRatedValues);
                 // }
             } catch (Exception E) {
@@ -54,9 +54,9 @@ class MovieSyncIntentService extends IntentService {
                 ContentValues[] popularValues = null;
                 ContentResolver resolver = c.getContentResolver();
                 // if ((popularValues != null) && (popularValues.length != 0)) {
-                // resolver.delete(MovieContract.PopularMovieEntry.POPULAR_URI,
+                // resolver.delete(MovieContract.MovieEntry.POPULAR_URI,
                 // null, null);
-                // resolver.bulkInsert(MovieContract.PopularMovieEntry.POPULAR_URI,
+                // resolver.bulkInsert(MovieContract.MovieEntry.POPULAR_URI,
                 // popularValues);
                 // }
             } catch (Exception E) {

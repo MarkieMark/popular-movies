@@ -8,4 +8,9 @@
         app:actionViewClass="android.widget.Spinner"
         android:title="@string/sort_by">
     </item>
+    <item
+        android:id="@+id/action_settings"
+        android:orderInCategory="100"
+        android:title="@string/action_settings"
+        app:showAsAction="never" />
 </menu>

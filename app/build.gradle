@@ -30,6 +30,7 @@ android {
         it.buildConfigField 'String', 'URL_TRAILER_Q', URLTrailerQ
         it.buildConfigField 'String', 'URL_VIDEO_Q', URLVideoQ
         it.buildConfigField 'String', 'URL_REVIEW_Q', URLReviewQ
+        it.buildConfigField 'String', 'URL_ADD_PAGE', URLAddPage
         it.buildConfigField 'String', 'YOUTUBE_IMAGE_URL', YouTubeImageURL
         it.buildConfigField 'String', 'YOUTUBE_IMAGE_Q', YouTubeImageQ
         it.buildConfigField 'String', 'YOUTUBE_LINK_URL', YouTubeLinkURL
@@ -42,6 +43,7 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support:preference-v7:25.3.1'
     compile 'com.squareup.picasso:picasso:2.5.2'
     testCompile 'junit:junit:4.12'
 }
