@@ -11,6 +11,8 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.util.Scanner;
 
+import com.halloit.mark.popularmovies.MainActivity.DisplayType;
+
 /**
  * Author Mark
  */
@@ -60,18 +62,16 @@ class Utils {
             return false;
         }
     }
-    class BooleanString {
+    class StringPlus {
         String jsonString;
-        boolean isFav;
-        boolean isPop;
+        DisplayType type;
         int offset = 0;
-        BooleanString(boolean isFav, boolean isPop) {
+        StringPlus(DisplayType displayType) {
             jsonString = null;
-            this.isFav = isFav;
-            this.isPop = isPop;
+            this.type = displayType;
         }
-        BooleanString(boolean isFav, boolean isPop, int offset) {
-            this(isFav, isPop);
+        StringPlus(DisplayType displayType, int offset) {
+            this(displayType);
             this.offset = offset;
         }
     }

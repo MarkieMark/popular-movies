@@ -38,9 +38,9 @@ import java.net.URL;
 
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener,
-        LoaderManager.LoaderCallbacks<Utils.BooleanString>, SharedPreferences.OnSharedPreferenceChangeListener {
+        LoaderManager.LoaderCallbacks<Utils.StringPlus>, SharedPreferences.OnSharedPreferenceChangeListener {
 
-    private enum DisplayType {POPULAR, TOP_RATED, FAVORITES}
+    enum DisplayType {POPULAR, TOP_RATED, FAVORITES}
     private static final String TAG = "MainActivity";
     private static final String KEY_MOVIE_LIST_IS_FAVORITE = "movie_list_favorite";
     private static final String KEY_MOVIE_LIST_IS_POPULAR = "movie_list_popular";
@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private ProgressBar mProgressBar;
     private TextView mErrorView;
     private int savedScrollInd = 0;
+    private ImageMainAdapter mAdapter;
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
@@ -66,21 +67,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     // The AsyncTaskLoader retrieves data from the internet then
     // handles database data retrieval / updating too
     @Override
-    public Loader<Utils.BooleanString> onCreateLoader(int id, final Bundle args) {
+    public Loader<Utils.StringPlus> onCreateLoader(int id, final Bundle args) {
         // save isFav / isPop / offset values for transmission
         final boolean isFav = args.getBoolean(KEY_MOVIE_LIST_IS_FAVORITE);
         final boolean isPop = args.getBoolean(KEY_MOVIE_LIST_IS_POPULAR);
+        final DisplayType loaderType = (isFav ? DisplayType.FAVORITES : (isPop ?
+                DisplayType.POPULAR : DisplayType.TOP_RATED));
         final int offset = args.getInt(KEY_OFFSET);
-        return new AsyncTaskLoader<Utils.BooleanString>(this) {
+        return new AsyncTaskLoader<Utils.StringPlus>(this) {
             @Override
             protected void onStartLoading() {
                 forceLoad();
             }
 
             @Override
-            public Utils.BooleanString loadInBackground() {
+            public Utils.StringPlus loadInBackground() {
                 // simplest method of appending data is the Java equivalent of a struct :-)
-                Utils.BooleanString ret = new Utils().new BooleanString(isFav, isPop, offset);
+                Utils.StringPlus ret = new Utils().new StringPlus(loaderType, offset);
                 if ((isFav) || (! Utils.isInternetAvailable())) {
                     return ret;
                 }
@@ -104,11 +107,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onLoadFinished(Loader<Utils.BooleanString> loader, Utils.BooleanString moviesData) {
-        boolean isFav = moviesData.isFav;
-        boolean isPop = moviesData.isPop;
+    public void onLoadFinished(Loader<Utils.StringPlus> loader, Utils.StringPlus moviesData) {
         // Favorites page shouldn't need the internet retrieval
-        if (isFav) {
+        if (moviesData.type == DisplayType.FAVORITES) {
             Cursor c = getContentResolver().query(MovieEntry.CONTENT_URI,
                     null, MovieEntry.COLUMN_FAVORITE + " = 1 ", null, null);
             if (c != null) {
@@ -116,7 +117,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     noFavorites();
                 } else {
                     Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished isFav");
-                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, true));
+                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, moviesData.type));
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
                     mGridView.smoothScrollToPosition(savedScrollInd);
@@ -133,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             // no fresh data; check for presence of db data
             Cursor c;
             String selectCol;
-            if (isPop) {
+            if (moviesData.type == DisplayType.POPULAR) {
                 selectCol = MovieEntry.COLUMN_POP_PRIORITY;
             } else {
                 selectCol = MovieEntry.COLUMN_TR_PRIORITY;
@@ -146,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 } else {
                     // let the image adapter handle the actual retrieval of images from the db
                     Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished null json");
-                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
+                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, moviesData.type));
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
                     mGridView.smoothScrollToPosition(savedScrollInd);
@@ -167,11 +168,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             JSONArray results = moviesJ.getJSONArray("results");
             int len = results.length();
             if ((len == 20) && (moviesData.offset < lengthLimit)) {
-                DisplayType type = DisplayType.TOP_RATED;
-                if (moviesData.isPop) {
-                    type = DisplayType.POPULAR;
-                }
-                loadMoviesData(type, moviesData.offset + 20);
+                loadMoviesData(moviesData.type, moviesData.offset + 20);
             }
             ContentValues[] values = new ContentValues[len];
             for (int i = 0; i < len; i++) {
@@ -194,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 values[i].put(MovieEntry.COLUMN_OVERVIEW, movieJ.getString("overview"));
                 values[i].put(MovieEntry.COLUMN_RELEASE_DATE, movieJ.getString("release_date"));
                 values[i].put(MovieEntry.COLUMN_VOTE_AVERAGE, movieJ.getDouble("vote_average"));
-                if (isPop) {
+                if (moviesData.type == DisplayType.POPULAR) {
                     values[i].put(MovieEntry.COLUMN_POP_PRIORITY, i + 1 + moviesData.offset);
                     values[i].put(MovieEntry.COLUMN_TR_PRIORITY, 0);
                 } else {
@@ -206,7 +203,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             getContentResolver().bulkInsert(uri, values);
             // then let the image adapter handle retrieving it from the database
             Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished got movies data");
-            mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
+            mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, moviesData.type));
             mProgressBar.setVisibility(View.INVISIBLE);
             mGridView.setVisibility(View.VISIBLE);
             mGridView.smoothScrollToPosition(savedScrollInd);
@@ -219,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onLoaderReset(Loader<Utils.BooleanString> loader) {
+    public void onLoaderReset(Loader<Utils.StringPlus> loader) {
         // not implemented
     }
 

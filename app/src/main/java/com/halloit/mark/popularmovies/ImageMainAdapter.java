@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
+import com.halloit.mark.popularmovies.MainActivity.DisplayType;
 import com.halloit.mark.popularmovies.MovieContract.MovieEntry;
 
 import java.io.BufferedInputStream;
@@ -30,7 +31,7 @@ import java.net.URLConnection;
 class ImageMainAdapter extends BaseAdapter {
     private static final String TAG = "ImageMainAdapter";
     private final Context context;
-    private final boolean isPop, isFav;
+    private DisplayType displayType;
     private static final String[] COLUMN_PROJECTION = {MovieEntry.COLUMN_MOVIE_ID,
             MovieEntry.COLUMN_IMAGE_FULL_PATH, MovieEntry.COLUMN_POSTER
             /*, MovieEntry.COLUMN_POP_PRIORITY, MovieEntry.COLUMN_TR_PRIORITY*/};
@@ -38,20 +39,25 @@ class ImageMainAdapter extends BaseAdapter {
     private static final int IND_COLUMN_IMAGE_FULL_PATH = 1;
     private static final int IND_COLUMN_POSTER = 2;
 
-    ImageMainAdapter(Context c, boolean isPop, boolean isFav) {
+    ImageMainAdapter(Context c, DisplayType type) {
         Log.i(TAG, "new ImageMainAdapter()");
         context = c;
-        this.isPop = isPop;
-        this.isFav = isFav;
+        displayType = type;
+    }
+
+    void setDisplayType(DisplayType type) {
+        boolean change = (type == displayType);
+        displayType = type;
+        if (change) notifyDataSetChanged();
     }
 
     @Override
     public int getCount() {
         String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
         Uri uri = MovieEntry.CONTENT_URI;
-        if (isFav) {
+        if (displayType == DisplayType.FAVORITES) {
             selectionCol = MovieEntry.COLUMN_FAVORITE;
-        } else if (!isPop) {
+        } else if (displayType == DisplayType.TOP_RATED) {
             selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
         }
         int ret = 0;
@@ -59,8 +65,7 @@ class ImageMainAdapter extends BaseAdapter {
                 selectionCol + " > 0 ", null, null);
         if (c != null) {
             ret = c.getCount();
-            Log.i(TAG, "getCount(); isPop = " + isPop + ", isFav = " + isFav +
-                    ", number of Entries " + ret);
+            Log.i(TAG, "getCount(); displayType = " + displayType + ", number of Entries " + ret);
 /*            while (c.moveToNext()) Log.i(TAG, c.getString(IND_COLUMN_IMAGE_FULL_PATH) + " " +
                     c.getLong(IND_COLUMN_MOVIE_ID) + " " + c.getInt(2) + " " + c.getInt(3));
 */            c.close();
@@ -105,7 +110,7 @@ class ImageMainAdapter extends BaseAdapter {
             Uri uri = MovieEntry.CONTENT_URI;
             String path = "no path";
             Long movieId = -1L;
-            if (isFav) {
+            if (displayType == DisplayType.FAVORITES) {
                 // should be immediate retrieval of data from database
                 Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
                         MovieEntry.COLUMN_FAVORITE + " = 1 ", null, MovieEntry._ID);
@@ -119,7 +124,9 @@ class ImageMainAdapter extends BaseAdapter {
                 // should be quick retrieval of data from database
                 String[] selectionArgs = {String.valueOf(position + 1)};
                 String selectionCol = MovieEntry.COLUMN_POP_PRIORITY;
-                if (!isPop) selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
+                if (displayType == DisplayType.TOP_RATED) {
+                    selectionCol = MovieEntry.COLUMN_TR_PRIORITY;
+                }
                 Cursor c = context.getContentResolver().query(uri, COLUMN_PROJECTION,
                         selectionCol + " = ? ", selectionArgs, null);
                 if (c != null) {
