@@ -28,7 +28,7 @@ import java.net.URLConnection;
  */
 
 class ImageMainAdapter extends BaseAdapter {
-    private static final String TAG = "ImageMainAdapter.java";
+    private static final String TAG = "ImageMainAdapter";
     private final Context context;
     private final boolean isPop, isFav;
     private static final String[] COLUMN_PROJECTION = {MovieEntry.COLUMN_MOVIE_ID,
@@ -39,6 +39,7 @@ class ImageMainAdapter extends BaseAdapter {
     private static final int IND_COLUMN_POSTER = 2;
 
     ImageMainAdapter(Context c, boolean isPop, boolean isFav) {
+        Log.i(TAG, "new ImageMainAdapter()");
         context = c;
         this.isPop = isPop;
         this.isFav = isFav;
@@ -79,11 +80,11 @@ class ImageMainAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        ImageView imageView = null;
+        AdjustableImageView imageView = null;
         try {
             if (convertView == null) {
                 // create new ImageView
-                imageView = new ImageView(context);
+                imageView = new AdjustableImageView(context);
                 imageView.setMinimumHeight((int) context.getResources().getDimension(
                         R.dimen.main_image_min_height));
                 imageView.setMaxWidth((int) context.getResources().getDimension(
@@ -97,8 +98,9 @@ class ImageMainAdapter extends BaseAdapter {
                                 R.dimen.main_image_vertical_padding),
                         (int) context.getResources().getDimension(
                                 R.dimen.main_image_vertical_padding));
+                imageView.setAdjustViewBounds(true);
             } else {
-                imageView = (ImageView) convertView;
+                imageView = (AdjustableImageView) convertView;
             }
             Uri uri = MovieEntry.CONTENT_URI;
             String path = "no path";

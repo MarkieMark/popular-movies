@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
@@ -43,12 +45,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private static final String KEY_MOVIE_LIST_IS_FAVORITE = "movie_list_favorite";
     private static final String KEY_MOVIE_LIST_IS_POPULAR = "movie_list_popular";
     private static final String KEY_OFFSET = "offset";
+    private static final String KEY_SCROLL_LOCATION = "scroll_location";
     private static final int MOVIE_DB_MAIN_SEARCH_LOADER = 712;
     private static DisplayType displayType = DisplayType.POPULAR;
     private int lengthLimit = 100;
     private GridView mGridView;
     private ProgressBar mProgressBar;
     private TextView mErrorView;
+    private int savedScrollInd = 0;
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
@@ -111,9 +115,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (c.getCount() < 1) {
                     noFavorites();
                 } else {
+                    Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished isFav");
                     mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, true));
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
+                    mGridView.smoothScrollToPosition(savedScrollInd);
+                    mGridView.setSelection(savedScrollInd);
+                    resetScrollInd(savedScrollInd);
                 }
                 c.close();
                 return;
@@ -137,9 +145,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     noDbData();
                 } else {
                     // let the image adapter handle the actual retrieval of images from the db
+                    Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished null json");
                     mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
+                    mGridView.smoothScrollToPosition(savedScrollInd);
+                    mGridView.setSelection(savedScrollInd);
+                    resetScrollInd(savedScrollInd);
                 }
                 c.close();
                 return;
@@ -193,9 +205,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Uri uri = MovieEntry.CONTENT_URI;
             getContentResolver().bulkInsert(uri, values);
             // then let the image adapter handle retrieving it from the database
+            Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished got movies data");
             mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, isPop, false));
             mProgressBar.setVisibility(View.INVISIBLE);
             mGridView.setVisibility(View.VISIBLE);
+            mGridView.smoothScrollToPosition(savedScrollInd);
+            mGridView.setSelection(savedScrollInd);
+            resetScrollInd(savedScrollInd);
         } catch (Exception E) {
             Log.i(TAG, E.toString());
             E.printStackTrace();
@@ -221,7 +237,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 .getString(getString(R.string.pref_number_key),
                 getString(R.string.pref_number_default)));
         Log.i(TAG, "loading movies data");
-        loadMoviesData(displayType, 0);
         // include themoviedb movie id as the identifier that accompanies the images
         mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v,
@@ -231,6 +246,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 startActivity(intent);
             }
         });
+        if (savedInstanceState != null) {
+            int ind = savedInstanceState.getInt(KEY_SCROLL_LOCATION);
+            Log.i(TAG, "savedInstanceState " + ind);
+            mGridView.smoothScrollToPosition(ind);
+            mGridView.setSelection(ind);
+            savedScrollInd = ind;
+        } else {
+            loadMoviesData(displayType, 0);
+            Log.i(TAG, "savedInstanceState null");
+        }
     }
 
     @Override
@@ -261,7 +286,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // relevant to the spinner; when we need to remember its setting, remember it
         // as a preference
         ((TextView) parent.getChildAt(0)).setTextColor(Color.WHITE);
+        DisplayType rem = displayType;
         displayType = DisplayType.values()[pos];
+        if (rem != displayType) savedScrollInd = 0;
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         boolean rememberType = sharedPreferences.getBoolean(
                 getString(R.string.pref_remember_type_key),
@@ -338,5 +365,32 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        int index = mGridView.getFirstVisiblePosition();
+        Log.i(TAG, "saving Instance State " + index);
+        outState.putInt(KEY_SCROLL_LOCATION, index);
+    }
+
+    private void resetScrollInd(final int scrollInd) {
+        final Handler handler = new Handler(Looper.getMainLooper());
+        new Runnable() {
+            public void run() {
+                try {
+                    Thread.sleep(500L);
+                } catch (Exception E) {
+                    E.printStackTrace();
+                }
+                handler.post(new Runnable() {
+                    public void run() {
+                        mGridView.smoothScrollToPosition(scrollInd);
+                        mGridView.setSelection(savedScrollInd);
+                    }
+                });
+            }
+        }.run();
     }
 }

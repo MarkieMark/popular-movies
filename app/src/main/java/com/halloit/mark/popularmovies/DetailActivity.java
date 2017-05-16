@@ -44,6 +44,8 @@ public class DetailActivity extends AppCompatActivity implements
     private TextView mErrorView;
     private ProgressBar mProgressBar;
     private LinearLayout mLinearLayoutMain;
+    private LinearLayout mReviewHeaderLayout;
+    private ImageView mReviewHeaderImageView;
 
     private static final String[] COLUMN_MOVIE_PROJECTION = {MovieEntry._ID, MovieEntry.COLUMN_MOVIE_ID,
             MovieEntry.COLUMN_IMAGE_FULL_PATH, MovieEntry.COLUMN_TITLE,
@@ -87,6 +89,8 @@ public class DetailActivity extends AppCompatActivity implements
         mFavoriteButton = (CheckBox) findViewById(R.id.ib_favorite);
         mReviewView = (WebView) findViewById(R.id.wv_reviews);
         mTrailerView = (LinearLayout) findViewById(R.id.ll_trailer);
+        mReviewHeaderLayout = (LinearLayout) findViewById(R.id.ll_reviews);
+        mReviewHeaderImageView = (ImageView) findViewById(R.id.iv_review_toggle);
         Intent intent = getIntent();
         getSupportLoaderManager().initLoader(MOVIE_DB_DETAIL_VIDEO_LOADER, null, this);
         if (intent.hasExtra(Intent.EXTRA_TEXT)) {
@@ -151,6 +155,8 @@ public class DetailActivity extends AppCompatActivity implements
                     c.getString(IND_COLUMN_OVERVIEW) + getString(R.string.html_suffix),
                     "text/html; charset=utf-8", "utf-8");
             mFavoriteButton.setChecked(c.getInt(IND_COLUMN_FAVORITE) > 0);
+            mReviewHeaderLayout.setVisibility(View.INVISIBLE);
+            mReviewView.setVisibility(View.GONE);
             c.close();
         }
     }
@@ -356,13 +362,16 @@ public class DetailActivity extends AppCompatActivity implements
                 StringBuilder htmlReviews = new StringBuilder(getString(R.string.html_prefix));
                 Cursor c = getContentResolver().query(ReviewEntry.buildReviewUriWithId(movieId),
                         COLUMN_REVIEW_PROJECTION, null, null, null);
-                if (c == null) return;
+                if (c == null) {
+                    mReviewHeaderLayout.setVisibility(View.GONE);
+                    return;
+                }
                 if (c.getCount() > 0) {
-                    htmlReviews.append(getString(R.string.html_new_paragraph))
-                                .append(getString(R.string.html_bold_ul_start))
-                                .append(getString(R.string.reviews))
-                                .append(getString(R.string.html_bold_ul_stop))
-                                .append(getString(R.string.html_end_paragraph));
+                    mReviewHeaderLayout.setVisibility(View.VISIBLE);
+                } else {
+                    mReviewHeaderLayout.setVisibility(View.GONE);
+                    c.close();
+                    return;
                 }
                 while(c.moveToNext()) {
                     htmlReviews.append(getString(R.string.html_new_paragraph))
@@ -388,5 +397,16 @@ public class DetailActivity extends AppCompatActivity implements
 
     @Override
     public void onLoaderReset(Loader<Utils.Boolean1String> loader) {
+    }
+
+    public void toggleReview(View view) {
+        boolean hide = (mReviewView.getVisibility() == View.VISIBLE);
+        if (hide) {
+            mReviewView.setVisibility(View.GONE);
+            mReviewHeaderImageView.setRotation(90);
+        } else {
+            mReviewView.setVisibility(View.VISIBLE);
+            mReviewHeaderImageView.setRotation(180);
+        }
     }
 }

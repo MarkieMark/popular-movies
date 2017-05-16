@@ -99,11 +99,42 @@
                     android:horizontalSpacing="@dimen/detail_trailer_spacing"
                     />
             </HorizontalScrollView>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:id="@+id/ll_reviews">
+                <ImageView
+                    android:layout_width="@dimen/detail_large_element_padding"
+                    android:layout_height="@dimen/detail_large_element_padding"
+                    android:layout_marginBottom="@dimen/layout_small_space"
+                    android:layout_marginTop="@dimen/detail_small_elements_padding"
+                    android:layout_marginRight="@dimen/detail_small_elements_padding"
+                    android:layout_marginEnd="@dimen/detail_small_elements_padding"
+                    android:rotation="90"
+                    android:id="@+id/iv_review_toggle"
+                    android:clickable="true"
+                    android:src="@drawable/shape_triangle"
+                    android:onClick="toggleReview"
+                    android:contentDescription="@string/description_toggle_review"
+                    />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_reviews_header"
+                    android:layout_gravity="center_horizontal"
+                    android:text="@string/reviews"
+                    android:textStyle="bold"
+                    android:textSize="@dimen/text_size_detail_medium"
+                    android:textColor="@color/colorBold"
+                    android:layout_marginTop="@dimen/detail_small_elements_padding"
+                    android:onClick="toggleReview"/>
+            </LinearLayout>
             <WebView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/wv_reviews"
-                android:gravity="fill_horizontal" />
+                android:gravity="fill_horizontal"/>
         </LinearLayout>
     </ScrollView>
     <ProgressBar

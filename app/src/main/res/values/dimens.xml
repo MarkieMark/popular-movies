@@ -3,7 +3,7 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="main_image_column">150dp</dimen>
-    <dimen name="main_small_space">3dp</dimen>
+    <dimen name="layout_small_space">3dp</dimen>
     <dimen name="text_size_largest">30sp</dimen>
     <dimen name="text_size_detail_large">22sp</dimen>
     <dimen name="text_size_detail_medium">18sp</dimen>

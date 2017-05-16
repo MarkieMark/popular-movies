@@ -9,8 +9,8 @@
     android:layout_height="match_parent"
     android:columnWidth="@dimen/main_image_column"
     android:numColumns="auto_fit"
-    android:verticalSpacing="@dimen/main_small_space"
-    android:horizontalSpacing="@dimen/main_small_space"
+    android:verticalSpacing="@dimen/layout_small_space"
+    android:horizontalSpacing="@dimen/layout_small_space"
     android:stretchMode="columnWidth"
     android:gravity="center"
     />
