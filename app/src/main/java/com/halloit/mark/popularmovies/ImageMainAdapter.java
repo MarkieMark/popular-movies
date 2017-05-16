@@ -40,7 +40,7 @@ class ImageMainAdapter extends BaseAdapter {
     private static final int IND_COLUMN_POSTER = 2;
 
     ImageMainAdapter(Context c, DisplayType type) {
-        Log.i(TAG, "new ImageMainAdapter()");
+        Log.i(TAG, "new ImageMainAdapter() " + type);
         context = c;
         displayType = type;
     }
@@ -81,6 +81,12 @@ class ImageMainAdapter extends BaseAdapter {
     @Override
     public long getItemId(int position) {
         return 0;
+    }
+
+    @Override
+    public void notifyDataSetChanged() {
+        super.notifyDataSetChanged();
+
     }
 
     @Override

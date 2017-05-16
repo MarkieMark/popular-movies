@@ -116,10 +116,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 if (c.getCount() < 1) {
                     noFavorites();
                 } else {
-                    Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished isFav");
-                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, moviesData.type));
+                    Log.i(TAG, "calling ImageMainAdapter.notifyDataSetChanged() from " +
+                            "onLoadFinished Fav");
+                    mAdapter.notifyDataSetChanged();
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
+                    Log.i(TAG, "onLoadFinished Fav resetting scroll to " + savedScrollInd);
                     mGridView.smoothScrollToPosition(savedScrollInd);
                     mGridView.setSelection(savedScrollInd);
                     resetScrollInd(savedScrollInd);
@@ -146,10 +148,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     noDbData();
                 } else {
                     // let the image adapter handle the actual retrieval of images from the db
-                    Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished null json");
-                    mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, moviesData.type));
+                    Log.i(TAG, "calling new ImageMainAdapter.notifyDataSetChanged() from " +
+                            "onLoadFinished null json");
+                    mAdapter.notifyDataSetChanged();
                     mProgressBar.setVisibility(View.INVISIBLE);
                     mGridView.setVisibility(View.VISIBLE);
+                    Log.i(TAG, "onLoadFinished null json resetting scroll to " + savedScrollInd);
                     mGridView.smoothScrollToPosition(savedScrollInd);
                     mGridView.setSelection(savedScrollInd);
                     resetScrollInd(savedScrollInd);
@@ -202,10 +206,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Uri uri = MovieEntry.CONTENT_URI;
             getContentResolver().bulkInsert(uri, values);
             // then let the image adapter handle retrieving it from the database
-            Log.i(TAG, "calling new ImageMainAdapter() from onLoadFinished got movies data");
-            mGridView.setAdapter(new ImageMainAdapter(MainActivity.this, moviesData.type));
+            Log.i(TAG, "calling ImageMainAdapter.notifyDataSetChanged() from " +
+                    "onLoadFinished got movies data");
+            mAdapter.notifyDataSetChanged();
             mProgressBar.setVisibility(View.INVISIBLE);
             mGridView.setVisibility(View.VISIBLE);
+            Log.i(TAG, "onLoadFinished got movies data resetting scroll to " + savedScrollInd);
             mGridView.smoothScrollToPosition(savedScrollInd);
             mGridView.setSelection(savedScrollInd);
             resetScrollInd(savedScrollInd);
@@ -238,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         mGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v,
                                     int position, long id) {
+                savedScrollInd = mGridView.getFirstVisiblePosition();
                 Intent intent = new Intent(MainActivity.this, DetailActivity.class);
                 intent.putExtra(Intent.EXTRA_TEXT, (String) v.getTag());
                 startActivity(intent);
@@ -250,6 +257,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             mGridView.setSelection(ind);
             savedScrollInd = ind;
         } else {
+            Log.i(TAG, "calling new ImageMainAdapter() from onCreate");
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+            if (sharedPreferences.getBoolean(getString(R.string.pref_remember_type_key),
+                    getResources().getBoolean(R.bool.pref_remember_type_default))) {
+                int pos = sharedPreferences.getInt(getString(R.string.pref_type), 0);
+                displayType = DisplayType.values()[pos];
+            }
+            mAdapter = new ImageMainAdapter(this, displayType);
+            mGridView.setAdapter(mAdapter);
             loadMoviesData(displayType, 0);
             Log.i(TAG, "savedInstanceState null");
         }
@@ -285,7 +301,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         ((TextView) parent.getChildAt(0)).setTextColor(Color.WHITE);
         DisplayType rem = displayType;
         displayType = DisplayType.values()[pos];
-        if (rem != displayType) savedScrollInd = 0;
+        if (rem != displayType) {
+            savedScrollInd = 0;
+            Log.i(TAG, "onItemSelected type changed, new ImageMainAdapter() resetting scroll to 0");
+            mAdapter = new ImageMainAdapter(this, displayType);
+            mGridView.setAdapter(mAdapter);
+        }
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         boolean rememberType = sharedPreferences.getBoolean(
                 getString(R.string.pref_remember_type_key),
@@ -346,7 +367,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i(TAG, "onResume() displayType " + displayType.name());
+        Log.i(TAG, "onResume() displayType " + displayType);
         if (displayType == DisplayType.FAVORITES) { // Favorites may have changed
             loadMoviesData(displayType, 0);
         }
@@ -357,6 +378,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         // check for launch of settings activity
         int id = item.getItemId();
         if (id == R.id.action_settings) {
+            savedScrollInd = mGridView.getFirstVisiblePosition();
             Intent startSettingsActivity = new Intent(this, SettingsActivity.class);
             startActivity(startSettingsActivity);
             return true;
@@ -383,8 +405,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
                 handler.post(new Runnable() {
                     public void run() {
+                        Log.i(TAG, "handler resetting scroll to " + scrollInd);
                         mGridView.smoothScrollToPosition(scrollInd);
-                        mGridView.setSelection(savedScrollInd);
+                        mGridView.setSelection(scrollInd);
                     }
                 });
             }
